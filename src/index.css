@@ -26,4 +26,7 @@
 .scrollbar-thin { scrollbar-width: thin; scrollbar-color: rgb(75 85 99) transparent; }
 @media print {
   .no-print { display: none !important; }
+  html, body, #root { background: #fff !important; color: #000 !important; }
+  .card { background: #fff !important; border-color: #ccc !important; box-shadow: none !important; break-inside: avoid; }
+  .print-plain, .print-plain * { color: #000 !important; background: transparent !important; }
 }
