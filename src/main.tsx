@@ -20,5 +20,5 @@ const tree = (
 
 const atRoot = window.location.pathname.replace(/\/$/, '') === basename.replace(/\/$/, '');
 // The landing page is pre-rendered at build time; hydrate it for visitors who are signed out.
-if (container.hasChildNodes() && atRoot && !getToken()) hydrateRoot(container, tree);
+if (container.firstElementChild && atRoot && !getToken()) hydrateRoot(container, tree);
 else createRoot(container).render(tree);
