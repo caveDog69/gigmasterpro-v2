@@ -1,0 +1,90 @@
+name: Deploy to FTP Server
+
+# main -> production (site root), dev -> preview (/dev subfolder, separate database)
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    env:
+      IS_PROD: ${{ github.ref_name == 'main' }}
+      BASE_PATH: ${{ github.ref_name == 'main' && '/' || '/dev/' }}
+      SERVER_DIR: ${{ github.ref_name == 'main' && (vars.FTP_SERVER_DIR || '/') || (vars.FTP_DEV_SERVER_DIR || '/dev/') }}
+      SITE_URL: ${{ vars.SITE_URL || secrets.SITE_URL }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint and type-check
+        run: |
+          npm run lint
+          npm run typecheck
+
+      - name: Build frontend (landing page is pre-rendered)
+        run: npm run build
+        env:
+          VITE_BASE_PATH: ${{ env.BASE_PATH }}
+          VITE_SITE_URL: ${{ env.SITE_URL }}
+
+      - name: Check PHP syntax
+        run: find api scripts -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: Assemble API and write config from secrets
+        env:
+          GMP_DB_HOST: ${{ github.ref_name == 'main' && secrets.DB_HOST || secrets.DEV_DB_HOST }}
+          GMP_DB_NAME: ${{ github.ref_name == 'main' && secrets.DB_NAME || secrets.DEV_DB_NAME }}
+          GMP_DB_USER: ${{ github.ref_name == 'main' && secrets.DB_USER || secrets.DEV_DB_USER }}
+          GMP_DB_PASS: ${{ github.ref_name == 'main' && secrets.DB_PASS || secrets.DEV_DB_PASS }}
+          GMP_MAIL_FROM: ${{ secrets.MAIL_FROM }}
+        run: |
+          rm -f api/config.php api/.schema-version
+          cp -r api dist/api
+          GMP_APP_URL="${SITE_URL%/}${BASE_PATH%/}" php scripts/write-config.php dist/api/config.php
+          mkdir -p dist/uploads/avatars
+          printf '%s\n' 'Options -Indexes -ExecCGI' 'RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar' '<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh)$">' '  Require all denied' '</FilesMatch>' > dist/uploads/.htaccess
+
+      - name: Deploy to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.ftpusername }}
+          password: ${{ secrets.ftppassword }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          local-dir: ./dist/
+          server-dir: ${{ env.SERVER_DIR }}
+          # No clean slate: avatars in uploads/ are never deleted. Only files this action
+          # uploaded before (tracked in its sync-state file) are removed when they disappear locally.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            uploads/avatars/**
+            api/.schema-version
+
+      - name: Smoke test the deployed API
+        if: ${{ env.SITE_URL != '' }}
+        run: |
+          url="${SITE_URL%/}${BASE_PATH}api/health"
+          for i in 1 2 3; do
+            if curl -fsS "$url"; then echo; exit 0; fi
+            sleep 5
+          done
+          echo "::warning::Health check failed at $url (open it in a browser for details)"
