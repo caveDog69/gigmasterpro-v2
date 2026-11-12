@@ -60,14 +60,14 @@ export default function Messages() {
     setMessages([]);
     lastId.current = 0;
     api.get<Message[]>(`/conversations/${activeId}/messages`)
-      .then((m) => { setMessages(m); lastId.current = m.at(-1)?.id ?? 0; markRead(activeId); })
+      .then((m) => { setMessages(m); lastId.current = m[m.length - 1]?.id ?? 0; markRead(activeId); })
       .catch((e) => toast.error(errorMessage(e)))
       .finally(() => setLoadingThread(false));
     const t = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
       api.get<Message[]>(`/conversations/${activeId}/messages?after_id=${lastId.current}`).then((m) => {
         if (!m.length) return;
-        lastId.current = m.at(-1)!.id;
+        lastId.current = m[m.length - 1]!.id;
         setMessages((cur) => [...cur.filter((x) => !m.some((n) => n.id === x.id)), ...m]);
         if (m.some((x) => x.sender_id !== user?.id)) markRead(activeId);
       }).catch(() => undefined);
