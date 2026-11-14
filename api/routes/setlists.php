@@ -34,7 +34,7 @@ function save_setlist_songs(int $setlistId, $entries): void
         $notes = is_array($e) ? mb_substr(trim((string) ($e['notes'] ?? '')), 0, 2000) : '';
         q('INSERT INTO setlist_songs (setlist_id, song_id, position, notes) VALUES (?,?,?,?)', [$setlistId, $songId, $pos + 1, $notes]);
     }
-    q('UPDATE setlists SET duration = (SELECT COALESCE(SUM(s.duration), 0) FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id WHERE ss.setlist_id = ?) WHERE id = ?', [$setlistId, $setlistId]);
+    refresh_setlist_durations([$setlistId]);
 }
 
 function setlist_detail(int $id): array

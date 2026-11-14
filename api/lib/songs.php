@@ -254,3 +254,17 @@ function user_song_index(int $userId): array
     }
     return $index;
 }
+
+/** @return int[] ids of setlists that contain the song */
+function setlists_with_song(int $songId): array
+{
+    return array_map('intval', array_column(q_all('SELECT DISTINCT setlist_id FROM setlist_songs WHERE song_id = ?', [$songId]), 'setlist_id'));
+}
+
+/** Recomputes setlists.duration from the durations of their songs. */
+function refresh_setlist_durations(array $setlistIds): void
+{
+    foreach (array_unique($setlistIds) as $sid) {
+        q('UPDATE setlists SET duration = (SELECT COALESCE(SUM(s.duration), 0) FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id WHERE ss.setlist_id = ?) WHERE id = ?', [$sid, $sid]);
+    }
+}

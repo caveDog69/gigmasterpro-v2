@@ -172,13 +172,16 @@ return static function (Router $r): void {
         $set = implode(', ', array_map(static fn ($c) => "`{$c}` = ?", array_keys($song)));
         q("UPDATE songs SET {$set} WHERE id = ? AND user_id = ?", array_merge(array_values($song), [$id, uid()]));
         catalog_upsert($song, 'user', null, false);
+        refresh_setlist_durations(setlists_with_song($id));
         return out_row(q_one('SELECT * FROM songs WHERE id = ?', [$id]));
     });
 
     $r->delete('/songs/{id}', static function ($p) {
         $id = id_param($p);
         owned_or_404('songs', $id, 'Song');
+        $setlists = setlists_with_song($id);
         q('DELETE FROM songs WHERE id = ? AND user_id = ?', [$id, uid()]);
+        refresh_setlist_durations($setlists);
         return ['ok' => true];
     });
 };
