@@ -14,14 +14,18 @@ export function transposeNote(note: string, steps: number, preferFlats: boolean)
   return (preferFlats ? FLATS : SHARPS)[j]!;
 }
 
+/** Transposes a key such as "C#/Db" or "Am", returning it in the same form as the key picker. */
 export function transposeKey(key: string, steps: number): string {
   if (!key || steps === 0) return key;
-  const m = key.match(/^([A-G][#b]?)(.*)$/);
+  const m = key.match(/^([A-G][#b]?)(m?)(?:\/|$)/);
   if (!m) return key;
-  const target = transposeNote(m[1]!, steps, false);
-  const flat = transposeNote(m[1]!, steps, true);
+  const i = noteIndex(m[1]!);
+  if (i < 0) return key;
+  const j = (((i + steps) % 12) + 12) % 12;
   const minor = m[2] ?? '';
-  return FLAT_KEYS.has(flat + minor) ? flat + minor : target + minor;
+  const sharp = SHARPS[j]!;
+  const flat = FLATS[j]!;
+  return sharp === flat ? sharp + minor : `${sharp}${minor}/${flat}${minor}`;
 }
 
 const CHORD_RE = /^([A-G][#b]?)((?:maj|min|m|dim|aug|sus|add|M)?[0-9]*(?:[#b][0-9]+)*(?:sus[24]?|add[0-9]+)?[0-9]*)(\/([A-G][#b]?))?$/;
