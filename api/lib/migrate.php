@@ -10,7 +10,8 @@ function run_migrations(): void
     $latest = $files ? basename(end($files)) : '';
 
     $marker = dirname(__DIR__) . '/.schema-version';
-    if ($latest !== '' && is_file($marker) && trim((string) @file_get_contents($marker)) === $latest) {
+    $stamp = $latest . ' ' . hash('sha256', config('db_host', 'localhost') . '|' . config('db_port', '') . '|' . config('db_name', ''));
+    if ($latest !== '' && is_file($marker) && trim((string) @file_get_contents($marker)) === $stamp) {
         return;
     }
 
@@ -35,7 +36,7 @@ function run_migrations(): void
         }
         q('INSERT INTO schema_migrations (version) VALUES (?)', [$version]);
     }
-    @file_put_contents($marker, $latest);
+    @file_put_contents($marker, $stamp);
 }
 
 function schema_version(): ?string
