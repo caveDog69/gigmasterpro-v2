@@ -18,10 +18,24 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IS_PROD: ${{ github.ref_name == 'main' }}
-      BASE_PATH: ${{ github.ref_name == 'main' && '/' || '/dev/' }}
-      SERVER_DIR: ${{ github.ref_name == 'main' && (vars.FTP_SERVER_DIR || '/') || (vars.FTP_DEV_SERVER_DIR || '/dev/') }}
-      SITE_URL: ${{ vars.SITE_URL || secrets.SITE_URL }}
     steps:
+      - name: Resolve deploy target
+        env:
+          RAW_SERVER_DIR: ${{ github.ref_name == 'main' && (vars.FTP_SERVER_DIR || '/') || (vars.FTP_DEV_SERVER_DIR || '/dev/') }}
+          PROD_SITE_URL: ${{ vars.SITE_URL || secrets.SITE_URL }}
+          DEV_SITE_URL: ${{ vars.DEV_SITE_URL }}
+        run: |
+          # dev deploys to <SITE_URL>/dev/, or to the root of DEV_SITE_URL (e.g. a dev. subdomain) when set
+          if [ "$IS_PROD" = true ] || [ -n "$DEV_SITE_URL" ]; then base=/; else base=/dev/; fi
+          site="$PROD_SITE_URL"
+          if [ "$IS_PROD" != true ] && [ -n "$DEV_SITE_URL" ]; then site="$DEV_SITE_URL"; fi
+          {
+            echo "BASE_PATH=$base"
+            echo "SERVER_DIR=${RAW_SERVER_DIR%/}/"
+            echo "SITE_URL=${site%/}"
+          } >> "$GITHUB_ENV"
+          echo "Deploying ${site%/}$base from FTP folder ${RAW_SERVER_DIR%/}/"
+
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -61,6 +75,22 @@ jobs:
           GMP_APP_URL="${SITE_URL%/}${BASE_PATH%/}" php scripts/write-config.php dist/api/config.php
           mkdir -p dist/uploads/avatars
           printf '%s\n' 'Options -Indexes -ExecCGI' 'RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar' '<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh)$">' '  Require all denied' '</FilesMatch>' > dist/uploads/.htaccess
+
+      - name: Check FTP target folder
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.ftpusername }}
+          FTP_PASS: ${{ secrets.ftppassword }}
+          FTP_PROTOCOL: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+        run: |
+          tls=(); [ "$FTP_PROTOCOL" = ftp ] || tls=(--ssl-reqd)
+          list() { curl -sS -m 30 "${tls[@]}" --list-only --user "$FTP_USER:$FTP_PASS" "ftp://$FTP_SERVER$1"; }
+          parent="$(dirname "/${SERVER_DIR#/}")"; parent="${parent%/}/"
+          if ! list "$parent" > /dev/null; then
+            echo "::error::FTP folder $parent does not exist for this FTP account (paths are relative to the FTP login folder, not /home/<user>). Fix FTP_SERVER_DIR / FTP_DEV_SERVER_DIR. The FTP login folder contains:"
+            list / || true
+            exit 1
+          fi
 
       - name: Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

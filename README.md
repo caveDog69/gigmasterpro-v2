@@ -22,7 +22,8 @@ Gig management for working musicians: repertoire, setlists, gigs, stage Play Mod
    | Variable | Purpose |
    |---|---|
    | `SITE_URL` | e.g. `https://yourdomain.com`. Used for canonical/OG URLs, sitemap, email links and the post-deploy health check |
-   | `FTP_SERVER_DIR` / `FTP_DEV_SERVER_DIR` (optional) | Default `/` and `/dev/`. Set these if your FTP account doesn't land in `public_html` |
+   | `FTP_SERVER_DIR` / `FTP_DEV_SERVER_DIR` (optional) | Default `/` and `/dev/`, relative to the FTP login folder (not `/home/<user>`). Set these if your FTP account doesn't land in `public_html` |
+   | `DEV_SITE_URL` (optional) | e.g. `https://dev.yourdomain.com`. Deploys `dev` to the root of that (sub)domain instead of `<SITE_URL>/dev/`; point `FTP_DEV_SERVER_DIR` at its document root |
    | `FTP_PROTOCOL` (optional) | Default `ftps`. Set to `ftp` if your host has no FTPS |
 
 3. Push to `main` to deploy production, or to `dev` to deploy the preview at `/dev/`. The workflow lints and builds the app, writes `api/config.php` from the secrets, and uploads everything over FTP. Files in `uploads/` are never deleted.
