@@ -1,0 +1,12 @@
+Options -Indexes -MultiViews
+RewriteEngine On
+# Pass the Authorization header through to PHP (some Apache/CGI setups drop it).
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteRule ^(lib|migrations|routes)(/|$) - [F,L]
+RewriteRule ^(config\.php|config\.sample\.php|\.schema-version)$ - [F,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
+<FilesMatch "\.(sql|md|log)$">
+  Require all denied
+</FilesMatch>
