@@ -64,7 +64,7 @@ function profile_out(?array $row, bool $self = false, bool $connected = false): 
             unset($row[$f]);
         }
         if (!$connected) {
-            unset($row['phone']);
+            unset($row['phone'], $row['zip']);
         }
     }
     return $row;
