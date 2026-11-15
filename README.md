@@ -40,6 +40,8 @@ npm install
 npm run dev                               # Vite proxies /api and /uploads to :8080
 ```
 
+Demo data: `php api/seed.php` (CLI only; uses the same `api/config.php` / `GMP_DB_*` settings) creates 20 users (`user1@example.com` … `user20@example.com`, password `Password1!`) with songs, setlists, gigs, a band and connections. It does nothing if `user1@example.com` already exists.
+
 Set `GMP_MAIL_LOG=/path/to/mail.log` to write outgoing emails to a file instead of sending them.
 
 Scripts: `npm run build` (type-check, client build, SSR pre-render), `npm run lint`, `npm run typecheck`.
