@@ -39,7 +39,9 @@ function AdsPanel() {
   const save = async (patch: Partial<AdSettings>) => {
     setSaving(true);
     try {
-      setSettings(await api.put<AdSettings>('/admin/settings', patch));
+      const saved = await api.put<AdSettings>('/admin/settings', patch);
+      // A plain toggle keeps any unsaved edits in the ID form.
+      setSettings((s) => (s && patch.client === undefined ? { ...s, enabled: saved.enabled } : saved));
       await refresh();
       toast.success('Ad settings saved.');
     } catch (e) {
@@ -112,8 +114,8 @@ function UsersPanel() {
   const update = async (u: AdminUser, patch: Partial<Pick<AdminUser, 'disabled' | 'role' | 'ad_free'>>, msg: string) => {
     setBusyId(u.id);
     try {
-      const next = await api.put<AdminUser>(`/admin/users/${u.id}`, patch);
-      setData((d) => d && { ...d, users: d.users.map((x) => (x.id === next.id ? next : x)) });
+      await api.put<AdminUser>(`/admin/users/${u.id}`, patch);
+      load();
       toast.success(msg);
     } catch (e) {
       toast.error(errorMessage(e));
