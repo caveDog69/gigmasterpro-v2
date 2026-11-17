@@ -29,15 +29,16 @@ return static function (Router $r): void {
     $r->put('/admin/settings', static function () {
         require_admin();
         $b = body();
+        $updates = [];
         if (array_key_exists('enabled', $b)) {
-            set_app_setting('ads_enabled', bool_input($b, 'enabled') ? '1' : '0');
+            $updates['ads_enabled'] = bool_input($b, 'enabled') ? '1' : '0';
         }
         if (array_key_exists('client', $b)) {
             $client = str_input($b, 'client', 64);
             if ($client !== '' && !preg_match('/^ca-pub-\d{10,20}$/', $client)) {
                 throw new HttpError(422, 'The AdSense publisher ID looks like ca-pub-1234567890123456.');
             }
-            set_app_setting('adsense_client', $client);
+            $updates['adsense_client'] = $client;
         }
         $slots = is_array($b['slots'] ?? null) ? $b['slots'] : [];
         foreach (['banner', 'sidebar', 'footer'] as $slot) {
@@ -46,8 +47,11 @@ return static function (Router $r): void {
                 if ($id !== '' && !ctype_digit($id)) {
                     throw new HttpError(422, 'Ad slot IDs are numbers, e.g. 1234567890.');
                 }
-                set_app_setting('adsense_slot_' . $slot, $id);
+                $updates['adsense_slot_' . $slot] = $id;
             }
+        }
+        foreach ($updates as $name => $value) {
+            set_app_setting($name, $value);
         }
         return ad_settings_out(app_settings());
     });
@@ -97,16 +101,11 @@ return static function (Router $r): void {
         }
         $b = body();
         $self = $id === (int) $me['id'];
-        if (array_key_exists('disabled', $b)) {
-            $disable = bool_input($b, 'disabled');
-            if ($self && $disable) {
-                throw new HttpError(422, 'You cannot disable your own account.');
-            }
-            q('UPDATE users SET disabled_at = ' . ($disable ? 'COALESCE(disabled_at, UTC_TIMESTAMP())' : 'NULL') . ' WHERE id = ?', [$id]);
-            if ($disable) {
-                q('DELETE FROM auth_tokens WHERE user_id = ?', [$id]);
-            }
+        $disable = array_key_exists('disabled', $b) ? bool_input($b, 'disabled') : null;
+        if ($self && $disable) {
+            throw new HttpError(422, 'You cannot disable your own account.');
         }
+        $role = null;
         if (array_key_exists('role', $b)) {
             $role = (string) $b['role'];
             if (!in_array($role, ['user', 'admin'], true)) {
@@ -115,11 +114,22 @@ return static function (Router $r): void {
             if ($self && $role !== 'admin') {
                 throw new HttpError(422, 'You cannot remove your own admin role.');
             }
+        }
+        $pdo = db();
+        $pdo->beginTransaction();
+        if ($disable !== null) {
+            q('UPDATE users SET disabled_at = ' . ($disable ? 'COALESCE(disabled_at, UTC_TIMESTAMP())' : 'NULL') . ' WHERE id = ?', [$id]);
+            if ($disable) {
+                q('DELETE FROM auth_tokens WHERE user_id = ?', [$id]);
+            }
+        }
+        if ($role !== null) {
             q('UPDATE users SET role = ? WHERE id = ?', [$role, $id]);
         }
         if (array_key_exists('ad_free', $b)) {
             q('UPDATE users SET ad_free = ? WHERE id = ?', [bool_input($b, 'ad_free') ? 1 : 0, $id]);
         }
+        $pdo->commit();
         return admin_user_out(q_one('SELECT ' . ADMIN_USER_COLS . ' FROM users u LEFT JOIN profiles p ON p.id = u.id WHERE u.id = ?', [$id]));
     });
 };
