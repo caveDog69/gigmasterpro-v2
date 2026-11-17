@@ -91,7 +91,7 @@ function AdsPanel() {
 }
 
 function UsersPanel() {
-  const { user: me } = useAuth();
+  const { user: me, refresh } = useAuth();
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
@@ -116,6 +116,7 @@ function UsersPanel() {
     try {
       await api.put<AdminUser>(`/admin/users/${u.id}`, patch);
       load();
+      if (u.id === me?.id) await refresh();
       toast.success(msg);
     } catch (e) {
       toast.error(errorMessage(e));
