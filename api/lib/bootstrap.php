@@ -113,7 +113,7 @@ function now_sql(): string
 
 const BOOL_FIELDS = ['is_public', 'is_original', 'is_read', 'can_edit'];
 const JSON_FIELDS = ['instruments', 'visible_fields'];
-const DATETIME_FIELDS = ['date_time', 'load_in_time', 'created_at', 'updated_at', 'last_message_at', 'joined_at', 'email_verified_at', 'expires_at'];
+const DATETIME_FIELDS = ['date_time', 'load_in_time', 'created_at', 'updated_at', 'last_message_at', 'joined_at', 'email_verified_at', 'expires_at', 'disabled_at'];
 const NUMERIC_FIELDS = ['payment', 'latitude', 'longitude', 'distance_miles'];
 
 /** Normalises DB rows for JSON output: ISO UTC datetimes, booleans, decoded JSON, numbers. */

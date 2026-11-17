@@ -23,6 +23,7 @@ const Community = lazy(() => import('./pages/community/Community'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
 const BandsList = lazy(() => import('./pages/bands/BandsList'));
 const BandDetail = lazy(() => import('./pages/bands/BandDetail'));
+const Admin = lazy(() => import('./pages/admin/Admin'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -30,6 +31,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
   if (loading) return <div className="min-h-screen bg-gray-900"><PageLoader label="Restoring your session…" /></div>;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+  return <>{children}</>;
+}
+
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (user?.role !== 'admin') return <NotFound />;
   return <>{children}</>;
 }
 
@@ -70,6 +77,7 @@ export default function App() {
           <Route path="/bands" element={<BandsList />} />
           <Route path="/bands/:id" element={<BandDetail />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

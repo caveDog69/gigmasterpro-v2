@@ -5,7 +5,42 @@ export interface User {
   id: number;
   email: string;
   email_verified: boolean;
+  role: UserRole;
+  ad_free: boolean;
   created_at: string;
+}
+
+export type UserRole = 'user' | 'admin';
+export type AdPlacement = 'banner' | 'sidebar' | 'footer';
+
+export interface AdSettings {
+  enabled: boolean;
+  client: string;
+  slots: Record<AdPlacement, string>;
+}
+
+export interface AdConfig extends AdSettings {
+  show: boolean;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: UserRole;
+  ad_free: boolean;
+  email_verified: boolean;
+  disabled: boolean;
+  disabled_at: string | null;
+  created_at: string;
+}
+
+export interface AdminUserList {
+  total: number;
+  users: AdminUser[];
+  counts: { all: number; admins: number; disabled: number };
 }
 
 export interface Profile {
@@ -260,4 +295,5 @@ export interface Session {
   token?: string;
   user: User;
   profile: Profile;
+  ads?: AdConfig;
 }

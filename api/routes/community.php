@@ -45,7 +45,7 @@ return static function (Router $r): void {
                 [$me['latitude'], $me['longitude']] = $coords;
             }
         }
-        $where = ['p.is_public = 1', 'p.id <> ?'];
+        $where = ['p.is_public = 1', 'p.id <> ?', 'p.id IN (SELECT id FROM users WHERE disabled_at IS NULL)'];
         $params = [uid()];
         $search = trim((string) query_param('search', ''));
         if ($search !== '') {

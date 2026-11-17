@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Guitar, Home, ListMusic, LogOut, Menu, Music, Plus, Upload, User, Users, X, MailWarning } from 'lucide-react';
+import { Calendar, Guitar, Home, ListMusic, LogOut, Menu, Music, Plus, Shield, Upload, User, Users, X, MailWarning } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationsContext';
 import { useToast } from '../../contexts/ToastContext';
 import { api, errorMessage } from '../../lib/api';
 import { cx } from '../../lib/format';
+import AdSlot from '../AdSlot';
 import Logo from '../Logo';
 import { Avatar } from '../ui';
 import NotificationBell from './NotificationBell';
@@ -28,6 +29,7 @@ export default function AppLayout() {
     { to: '/gigs', label: 'Gigs', icon: Calendar },
     { to: '/bands', label: 'Bands', icon: Guitar, badge: summary.pending_band_invitations },
     { to: '/community', label: 'Community', icon: Users, badge: communityBadge },
+    ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin', icon: Shield, badge: 0 }] : []),
   ];
   const quick = [
     { to: '/songs/new', label: 'Add Song', icon: Plus },
@@ -135,9 +137,14 @@ export default function AppLayout() {
             <button className="font-medium underline hover:text-amber-100" onClick={resend}>Resend link</button>
           </div>
         )}
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <Outlet />
-        </main>
+        <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 2xl:max-w-[1600px]">
+          <main className="min-w-0 flex-1">
+            <AdSlot placement="banner" className="mb-6" />
+            <Outlet />
+            <AdSlot placement="footer" className="mt-8" />
+          </main>
+          <AdSlot placement="sidebar" className="sticky top-24 hidden w-[160px] shrink-0 self-start xl:block 2xl:w-[300px]" />
+        </div>
       </div>
     </div>
   );
