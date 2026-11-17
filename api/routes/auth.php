@@ -7,6 +7,8 @@ function user_out(array $u): array
         'id' => (int) $u['id'],
         'email' => $u['email'],
         'email_verified' => !empty($u['email_verified_at']),
+        'role' => $u['role'] ?? 'user',
+        'ad_free' => !empty($u['ad_free']),
         'created_at' => out_row(['created_at' => $u['created_at']])['created_at'],
     ];
 }
@@ -41,9 +43,9 @@ function ensure_profile(int $userId, string $email, ?string $displayName = null)
 
 function session_payload(int $userId, ?string $token = null): array
 {
-    $user = q_one('SELECT id, email, email_verified_at, created_at FROM users WHERE id = ?', [$userId]);
+    $user = q_one('SELECT id, email, email_verified_at, role, ad_free, created_at FROM users WHERE id = ?', [$userId]);
     $profile = ensure_profile($userId, $user['email']);
-    $out = ['user' => user_out($user), 'profile' => profile_out($profile, true)];
+    $out = ['user' => user_out($user), 'profile' => profile_out($profile, true), 'ads' => ads_for_user($user)];
     if ($token !== null) {
         $out['token'] = $token;
     }

@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, getToken, setToken, setUnauthorizedHandler } from '../lib/api';
-import type { Profile, Session, User } from '../lib/types';
+import type { AdConfig, Profile, Session, User } from '../lib/types';
 
 interface AuthState {
   user: User | null;
   profile: Profile | null;
+  ads: AdConfig | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
@@ -36,6 +37,7 @@ export function clearCacheAndReset() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [ads, setAds] = useState<AdConfig | null>(null);
   const [loading, setLoading] = useState<boolean>(() => !!getToken());
   const [signOutReason, setSignOutReason] = useState<string | null>(null);
 
@@ -43,12 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (s.token) setToken(s.token);
     setUser(s.user);
     setProfile(s.profile);
+    setAds(s.ads ?? null);
   }, []);
 
   const clearLocal = useCallback((reason?: string) => {
     setToken(null);
     setUser(null);
     setProfile(null);
+    setAds(null);
     if (reason) setSignOutReason(reason);
   }, []);
 
@@ -56,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const s = await api.get<Session>('/auth/me');
     setUser(s.user);
     setProfile(s.profile);
+    setAds(s.ads ?? null);
   }, []);
 
   useEffect(() => {
@@ -100,10 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthState>(
     () => ({
-      user, profile, loading, signIn, signUp, signOut, applySession, refresh, setProfile, setUser,
+      user, profile, ads, loading, signIn, signUp, signOut, applySession, refresh, setProfile, setUser,
       signOutReason, clearSignOutReason: () => setSignOutReason(null),
     }),
-    [user, profile, loading, signIn, signUp, signOut, applySession, refresh, signOutReason],
+    [user, profile, ads, loading, signIn, signUp, signOut, applySession, refresh, signOutReason],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

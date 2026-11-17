@@ -48,12 +48,25 @@ Scripts: `npm run build` (type-check, client build, SSR pre-render), `npm run li
 
 Environment variables (`.env.example`): `VITE_API_BASE_URL` (default `<base>/api`), `VITE_BASE_PATH`, `VITE_SITE_URL`, `VITE_DEV_API_PROXY`.
 
+## Admin and ads
+
+Users have a role (`user` or `admin`). Admins get an **Admin** link in the sidebar (`/admin`) where they can switch ads on/off, set the AdSense publisher ID and slot IDs, and disable/enable users, grant or remove admin, or mark a user ad-free. Disabled users are signed out everywhere, can't sign in and are hidden from Community.
+
+Make the first admin with SQL (phpMyAdmin → SQL tab):
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
+```
+
+Ads render in three responsive slots: a banner above page content (320×50 / 728×90 / 970×90), a right-hand rail on wide screens (160×600 / 300×600) and a footer unit below content (300×250 / 728×90). Nothing loads from Google until ads are switched on and a publisher ID and that slot's ID are set; while ads are on but a slot has no ID, admins see a dashed placeholder where it will appear. Users flagged `ad_free` never see ads (the hook for a future paid ad-free plan). AdSense also needs an `ads.txt` at the site root, e.g. `google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0`.
+
 ## API overview
 
 All endpoints are under `/api`. Every endpoint needs `Authorization: Bearer <token>` except `/health`, `/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email` and the private iCal feed `/calendar/{token}.ics`.
 
 | Area | Endpoints |
 |---|---|
+| Admin (admins only) | `GET/PUT /admin/settings`, `GET /admin/users?search=&status=active\|disabled\|admin`, `PUT /admin/users/{id}` (`disabled`, `role`, `ad_free`) |
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/logout`, `GET /auth/me`, `POST /auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`, `/auth/resend-verification`, `PUT /auth/password` |
 | Profile | `GET/PUT /profile`, `POST/DELETE /profile/avatar`, `GET/PUT /profile/play-mode-settings`, `POST /profile/calendar-token`, `GET /users/search` |
 | Songs | `GET/POST /songs`, `GET/PUT/DELETE /songs/{id}`, `GET /songs/search?q=` (catalog + lrclib), `POST /songs/import/match`, `POST /songs/import` |

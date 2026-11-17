@@ -33,9 +33,9 @@ function current_user(): ?array
         return null;
     }
     $row = q_one(
-        'SELECT t.id AS token_id, t.last_used_at, u.id, u.email, u.email_verified_at, u.created_at
+        'SELECT t.id AS token_id, t.last_used_at, u.id, u.email, u.email_verified_at, u.role, u.ad_free, u.created_at
          FROM auth_tokens t JOIN users u ON u.id = t.user_id
-         WHERE t.token_hash = ? AND t.expires_at > UTC_TIMESTAMP()',
+         WHERE t.token_hash = ? AND t.expires_at > UTC_TIMESTAMP() AND u.disabled_at IS NULL',
         [hash('sha256', $token)]
     );
     if (!$row) {
@@ -67,6 +67,9 @@ function uid(): int
 
 function issue_token(int $userId): string
 {
+    if (q_val('SELECT disabled_at FROM users WHERE id = ?', [$userId]) !== null) {
+        throw new HttpError(403, 'This account has been disabled. Contact the site administrator if you think this is a mistake.');
+    }
     $token = random_token();
     q(
         'INSERT INTO auth_tokens (user_id, token_hash, user_agent, expires_at) VALUES (?, ?, ?, UTC_TIMESTAMP() + INTERVAL ' . TOKEN_TTL_DAYS . ' DAY)',

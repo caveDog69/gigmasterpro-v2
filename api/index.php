@@ -8,6 +8,7 @@ require __DIR__ . '/lib/router.php';
 require __DIR__ . '/lib/access.php';
 require __DIR__ . '/lib/geo.php';
 require __DIR__ . '/lib/songs.php';
+require __DIR__ . '/lib/settings.php';
 
 set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
     if (!(error_reporting() & $severity)) {
