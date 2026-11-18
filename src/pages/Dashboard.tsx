@@ -77,7 +77,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <section className="card lg:col-span-2" aria-labelledby="upcoming-heading">
           <div className="flex items-center justify-between border-b border-gray-800 px-5 py-4">
             <h2 id="upcoming-heading" className="font-semibold text-white">Upcoming gigs</h2>
