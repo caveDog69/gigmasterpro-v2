@@ -62,7 +62,7 @@ Ads render in three responsive slots: a banner above page content (320×50 / 728
 
 ## Invites
 
-Any signed-in user can invite people from **Invite friends** (`/invite`). The invitee gets an email with a sign-up link (`/signup?invite=…`, valid 14 days); the inviter also gets the link to copy, in case the host's mail doesn't arrive. Signing up through the link with the invited address confirms the email, connects the new member with everyone who invited that address and notifies them (signing up without the link does the same once the email is verified). Invites can be resent (at most once an hour) or revoked, each user can send 20 per 24 hours, and existing members can't be invited. Sign-up stays open to everyone.
+Any signed-in user can invite people from **Invite friends** (`/invite`). The invitee gets an email with a sign-up link (`/signup?invite=…`, valid 14 days); the inviter also gets the link to copy, in case the host's mail doesn't arrive. Signing up through the link with the invited address connects the new member with that inviter and notifies them; once the new member verifies their email (or resets their password), every other open invite for that address is accepted the same way. The link isn't treated as proof of email ownership, since the inviter can see it too. An invite can be resent at most once an hour and 5 times in total, or revoked; each user can send 20 per 24 hours, and existing members can't be invited. Sign-up stays open to everyone.
 
 ## API overview
 
