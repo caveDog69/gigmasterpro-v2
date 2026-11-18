@@ -34,6 +34,9 @@ function find_open_invite(string $token): ?array
  */
 function accept_invites_for(int $userId, string $email, ?int $onlyInviteId = null): void
 {
+    if (q_val('SELECT disabled_at FROM users WHERE id = ?', [$userId]) !== null) {
+        return;
+    }
     $invites = q_all(
         "SELECT i.id, i.inviter_id, i.message FROM user_invites i
          JOIN users u ON u.id = i.inviter_id AND u.disabled_at IS NULL
