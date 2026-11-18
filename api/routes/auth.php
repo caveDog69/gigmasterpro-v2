@@ -171,6 +171,7 @@ return static function (Router $r): void {
         $userId = consume_email_token((string) ($b['token'] ?? ''), 'reset');
         q('UPDATE users SET password_hash = ?, email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $userId]);
         q('DELETE FROM auth_tokens WHERE user_id = ?', [$userId]);
+        accept_invites_for($userId, (string) q_val('SELECT email FROM users WHERE id = ?', [$userId]));
         return session_payload($userId, issue_token($userId));
     }, true);
 
