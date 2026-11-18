@@ -26,15 +26,18 @@ function find_open_invite(string $token): ?array
 }
 
 /**
- * Marks every open invite for $email as accepted by $userId, connects the new member
- * with each inviter and notifies them. Only call once the email address is proven.
+ * Marks open invites for $email as accepted by $userId, connects the new member with each
+ * inviter and notifies them. Pass $onlyInviteId to accept just the invite whose link was
+ * used; accepting every invite for the address requires a verified email, because the
+ * inviter can see their own link.
  */
-function accept_invites_for(int $userId, string $email): void
+function accept_invites_for(int $userId, string $email, ?int $onlyInviteId = null): void
 {
     $invites = q_all(
         "SELECT i.id, i.inviter_id, i.message FROM user_invites i
          JOIN users u ON u.id = i.inviter_id AND u.disabled_at IS NULL
-         WHERE i.email = ? AND i.status = 'pending' AND i.expires_at > UTC_TIMESTAMP() AND i.inviter_id <> ?",
+         WHERE i.email = ? AND i.status = 'pending' AND i.expires_at > UTC_TIMESTAMP() AND i.inviter_id <> ?"
+         . ($onlyInviteId !== null ? ' AND i.id = ' . $onlyInviteId : ''),
         [strtolower($email), $userId]
     );
     if (!$invites) {

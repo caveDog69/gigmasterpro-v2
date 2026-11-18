@@ -103,22 +103,17 @@ return static function (Router $r): void {
         if (q_val('SELECT 1 FROM users WHERE email = ?', [$email])) {
             throw new HttpError(409, 'An account with this email already exists. Try signing in instead.');
         }
-        // Opening an invite link sent to this address proves the user owns it.
         $invite = find_open_invite(str_input($b, 'invite_token', 128));
-        $verified = $invite && $invite['email'] === $email;
         $pdo = db();
         $pdo->beginTransaction();
-        q(
-            'INSERT INTO users (email, password_hash, email_verified_at) VALUES (?, ?, ' . ($verified ? 'UTC_TIMESTAMP()' : 'NULL') . ')',
-            [$email, password_hash($password, PASSWORD_DEFAULT)]
-        );
+        q('INSERT INTO users (email, password_hash) VALUES (?, ?)', [$email, password_hash($password, PASSWORD_DEFAULT)]);
         $userId = (int) $pdo->lastInsertId();
         ensure_profile($userId, $email, $displayName);
-        if ($verified) {
-            accept_invites_for($userId, $email);
+        if ($invite && $invite['email'] === $email) {
+            accept_invites_for($userId, $email, (int) $invite['id']);
         }
         $pdo->commit();
-        $mailed = $verified ? false : send_verification_email($userId, $email);
+        $mailed = send_verification_email($userId, $email);
         $payload = session_payload($userId, issue_token($userId));
         $payload['verification_email_sent'] = $mailed;
         return $payload;
