@@ -15,7 +15,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
       <div className="pointer-events-none absolute -top-40 left-1/2 h-96 w-[48rem] -translate-x-1/2 rounded-full bg-purple-700/20 blur-3xl" />
       <Link to="/" className="relative mb-8"><Logo /></Link>
       <div className="relative w-full max-w-md">
-        <AuthPanel key={mode} initialMode={mode} onModeChange={(m) => navigate(m === 'signup' ? paths[m] + search : paths[m], { replace: true })} />
+        <AuthPanel key={mode} initialMode={mode} onModeChange={(m) => navigate(paths[m] + search, { replace: true })} />
       </div>
     </div>
   );
