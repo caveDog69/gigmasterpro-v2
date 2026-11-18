@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { clearCacheAndReset, useAuth } from '../../contexts/AuthContext';
 import { api, errorMessage } from '../../lib/api';
 import PasswordRules, { passwordValid } from '../../components/PasswordRules';
-import { Spinner } from '../../components/ui';
+import { Avatar, Spinner } from '../../components/ui';
+import type { InviteLookup } from '../../lib/types';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -19,6 +20,23 @@ export default function AuthPanel({ initialMode = 'signup', onModeChange }: { in
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const inviteToken = params.get('invite') ?? '';
+  const [invite, setInvite] = useState<InviteLookup | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    let active = true;
+    api.get<InviteLookup>(`/invites/lookup?token=${encodeURIComponent(inviteToken)}`)
+      .then((res) => {
+        if (!active) return;
+        setInvite(res);
+        setEmail((e) => e || res.email);
+      })
+      .catch((err) => active && setInviteError(errorMessage(err)));
+    return () => { active = false; };
+  }, [inviteToken]);
 
   const setMode = (m: AuthMode) => {
     setModeState(m);
@@ -42,7 +60,7 @@ export default function AuthPanel({ initialMode = 'signup', onModeChange }: { in
         await signIn(email.trim(), password);
         navigate('/dashboard');
       } else if (mode === 'signup') {
-        await signUp(email.trim(), password, displayName.trim());
+        await signUp(email.trim(), password, displayName.trim(), invite ? inviteToken : undefined);
         navigate('/dashboard');
       } else {
         const res = await api.post<{ message: string }>('/auth/forgot-password', { email: email.trim() });
@@ -58,7 +76,7 @@ export default function AuthPanel({ initialMode = 'signup', onModeChange }: { in
   const titles = { login: 'Welcome back', signup: 'Create your free account', forgot: 'Reset your password' };
   const subtitles = {
     login: 'Sign in to your repertoire, setlists and gigs.',
-    signup: 'Start organizing your music career in minutes.',
+    signup: invite ? `Join ${invite.inviter.display_name} and start organizing your music career.` : 'Start organizing your music career in minutes.',
     forgot: "Enter your email and we'll send you a reset link.",
   };
 
@@ -75,6 +93,13 @@ export default function AuthPanel({ initialMode = 'signup', onModeChange }: { in
           ))}
         </div>
       )}
+      {mode === 'signup' && invite && (
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-2.5 text-sm text-purple-100">
+          <Avatar name={invite.inviter.display_name} url={invite.inviter.avatar_url} size="sm" />
+          <p><span className="font-medium text-white">{invite.inviter.display_name}</span> invited you to GigMasterPro.</p>
+        </div>
+      )}
+      {mode === 'signup' && inviteError && <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">{inviteError}</p>}
       {signOutReason && <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">{signOutReason}</p>}
       <form className="mt-5 space-y-4" onSubmit={submit} noValidate>
         {mode === 'signup' && (

@@ -297,3 +297,35 @@ export interface Session {
   profile: Profile;
   ads?: AdConfig;
 }
+
+export type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
+
+export interface Invite {
+  id: number;
+  email: string;
+  message: string | null;
+  status: InviteStatus;
+  sent_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+  accepted_user: { id: number; username: string; display_name: string; avatar_url: string | null } | null;
+}
+
+export interface InviteList {
+  invites: Invite[];
+  daily_limit: number;
+  remaining_today: number;
+}
+
+export interface InviteSent {
+  invite: Invite;
+  link: string;
+  email_sent: boolean;
+  remaining_today: number;
+}
+
+export interface InviteLookup {
+  email: string;
+  inviter: { display_name: string; username: string; avatar_url: string | null };
+}

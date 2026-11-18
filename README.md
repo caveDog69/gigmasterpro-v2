@@ -60,9 +60,13 @@ UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
 
 Ads render in three responsive slots: a banner above page content (320×50 / 728×90 / 970×90), a right-hand rail on wide screens (160×600 / 300×600) and a footer unit below content (300×250 / 728×90). Nothing loads from Google until ads are switched on and a publisher ID and that slot's ID are set; while ads are on but a slot has no ID, admins see a dashed placeholder where it will appear. Users flagged `ad_free` never see ads (the hook for a future paid ad-free plan). AdSense also needs an `ads.txt` at the site root, e.g. `google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0`.
 
+## Invites
+
+Any signed-in user can invite people from **Invite friends** (`/invite`). The invitee gets an email with a sign-up link (`/signup?invite=…`, valid 14 days); the inviter also gets the link to copy, in case the host's mail doesn't arrive. Signing up through the link with the invited address confirms the email, connects the new member with everyone who invited that address and notifies them (signing up without the link does the same once the email is verified). Invites can be resent (at most once an hour) or revoked, each user can send 20 per 24 hours, and existing members can't be invited. Sign-up stays open to everyone.
+
 ## API overview
 
-All endpoints are under `/api`. Every endpoint needs `Authorization: Bearer <token>` except `/health`, `/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email` and the private iCal feed `/calendar/{token}.ics`.
+All endpoints are under `/api`. Every endpoint needs `Authorization: Bearer <token>` except `/health`, `/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`, `/invites/lookup` and the private iCal feed `/calendar/{token}.ics`.
 
 | Area | Endpoints |
 |---|---|
@@ -73,6 +77,7 @@ All endpoints are under `/api`. Every endpoint needs `Authorization: Bearer <tok
 | Setlists | `GET/POST /setlists`, `GET/PUT/DELETE /setlists/{id}`, `PUT /setlists/{id}/songs` |
 | Gigs | `GET/POST /gigs`, `GET/PUT/DELETE /gigs/{id}`, `PUT /gigs/{id}/setlists`, `GET /gigs/{id}/play`, `GET /gigs/calendar.ics`, `GET /gigs/{id}/calendar.ics` |
 | Community | `GET /community/profiles`, `GET/POST /connections`, `PUT/DELETE /connections/{id}` |
+| Invites | `GET/POST /invites`, `POST /invites/{id}/resend`, `DELETE /invites/{id}` (revoke), `GET /invites/lookup?token=` (public); `POST /auth/register` accepts `invite_token` |
 | Messaging | `GET/POST /conversations`, `GET/POST /conversations/{id}/messages`, `PUT /conversations/{id}/read`, `GET /messages/unread-counts` |
 | Notifications | `GET /notifications`, `GET /notifications/summary`, `PUT /notifications/read-all`, `PUT /notifications/{id}/read` |
 | Bands | `GET/POST /bands`, `GET/PUT/DELETE /bands/{id}`, `POST /bands/{id}/invitations`, `DELETE /bands/{id}/invitations/{id}`, `PUT/DELETE /bands/{id}/members/{userId}`, `POST /bands/{id}/{songs\|setlists\|gigs}`, `DELETE /bands/{id}/{type}/{itemId}`, `GET /band-invitations`, `PUT /band-invitations/{id}` |
