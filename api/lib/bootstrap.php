@@ -113,7 +113,7 @@ function now_sql(): string
 
 const BOOL_FIELDS = ['is_public', 'is_original', 'is_read', 'can_edit'];
 const JSON_FIELDS = ['instruments', 'visible_fields'];
-const DATETIME_FIELDS = ['date_time', 'load_in_time', 'created_at', 'updated_at', 'last_message_at', 'joined_at', 'email_verified_at', 'expires_at', 'disabled_at'];
+const DATETIME_FIELDS = ['date_time', 'load_in_time', 'created_at', 'updated_at', 'last_message_at', 'joined_at', 'email_verified_at', 'expires_at', 'disabled_at', 'sent_at', 'accepted_at'];
 const NUMERIC_FIELDS = ['payment', 'latitude', 'longitude', 'distance_miles'];
 
 /** Normalises DB rows for JSON output: ISO UTC datetimes, booleans, decoded JSON, numbers. */
@@ -341,7 +341,15 @@ function send_mail(string $to, string $subject, string $text): bool
         'MIME-Version: 1.0',
         'Content-Type: text/plain; charset=UTF-8',
     ];
-    return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $text, implode("\r\n", $headers), '-f' . $from);
+    if (!function_exists('mail')) {
+        return false;
+    }
+    try {
+        return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $text, implode("\r\n", $headers), '-f' . $from);
+    } catch (Throwable $e) {
+        error_log('[GigMasterPro] mail() failed: ' . $e->getMessage());
+        return false;
+    }
 }
 
 function http_get_json(string $url, int $timeoutSeconds = 5): ?array

@@ -103,11 +103,15 @@ return static function (Router $r): void {
         if (q_val('SELECT 1 FROM users WHERE email = ?', [$email])) {
             throw new HttpError(409, 'An account with this email already exists. Try signing in instead.');
         }
+        $invite = find_open_invite(str_input($b, 'invite_token', 128));
         $pdo = db();
         $pdo->beginTransaction();
         q('INSERT INTO users (email, password_hash) VALUES (?, ?)', [$email, password_hash($password, PASSWORD_DEFAULT)]);
         $userId = (int) $pdo->lastInsertId();
         ensure_profile($userId, $email, $displayName);
+        if ($invite && $invite['email'] === $email) {
+            accept_invites_for($userId, $email, (int) $invite['id']);
+        }
         $pdo->commit();
         $mailed = send_verification_email($userId, $email);
         $payload = session_payload($userId, issue_token($userId));
@@ -167,12 +171,14 @@ return static function (Router $r): void {
         $userId = consume_email_token((string) ($b['token'] ?? ''), 'reset');
         q('UPDATE users SET password_hash = ?, email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $userId]);
         q('DELETE FROM auth_tokens WHERE user_id = ?', [$userId]);
+        accept_invites_for($userId, (string) q_val('SELECT email FROM users WHERE id = ?', [$userId]));
         return session_payload($userId, issue_token($userId));
     }, true);
 
     $r->post('/auth/verify-email', static function () {
         $userId = consume_email_token((string) input('token', ''), 'verify');
         q('UPDATE users SET email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = ?', [$userId]);
+        accept_invites_for($userId, (string) q_val('SELECT email FROM users WHERE id = ?', [$userId]));
         return ['ok' => true];
     }, true);
 
