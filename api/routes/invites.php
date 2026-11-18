@@ -74,11 +74,15 @@ function assert_resend_allowed(array $invite): void
 function send_invite(int $id): array
 {
     $token = random_token();
-    q(
+    $claimed = q(
         "UPDATE user_invites SET token_hash = ?, status = 'pending', accepted_user_id = NULL, accepted_at = NULL,
-         send_count = send_count + 1, sent_at = UTC_TIMESTAMP(), expires_at = UTC_TIMESTAMP() + INTERVAL " . INVITE_TTL_DAYS . ' DAY WHERE id = ?',
+         send_count = send_count + 1, sent_at = UTC_TIMESTAMP(), expires_at = UTC_TIMESTAMP() + INTERVAL " . INVITE_TTL_DAYS . ' DAY
+         WHERE id = ? AND send_count < ' . INVITE_MAX_SENDS,
         [invite_hash($token), $id]
-    );
+    )->rowCount();
+    if ($claimed === 0) {
+        throw new HttpError(429, 'This invite has already been sent ' . INVITE_MAX_SENDS . ' times. Share the link with them directly instead.');
+    }
     $invite = load_own_invite($id);
     $link = app_url() . '/signup?invite=' . $token;
     $name = (string) q_val('SELECT display_name FROM profiles WHERE id = ?', [uid()]);
