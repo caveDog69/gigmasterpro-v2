@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS user_invites (
   token_hash CHAR(64) NOT NULL,
   status ENUM('pending','accepted','revoked') NOT NULL DEFAULT 'pending',
   accepted_user_id INT UNSIGNED NULL,
+  send_count TINYINT UNSIGNED NOT NULL DEFAULT 0,
   sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   expires_at DATETIME NOT NULL,
   accepted_at DATETIME NULL,

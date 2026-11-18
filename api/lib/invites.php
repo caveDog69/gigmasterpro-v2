@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 const INVITE_TTL_DAYS = 14;
 const INVITE_DAILY_LIMIT = 20;
+const INVITE_MAX_SENDS = 5;
 
 function invite_hash(string $token): string
 {

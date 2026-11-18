@@ -62,7 +62,10 @@ function assert_resend_allowed(array $invite): void
     if ($invite['status'] === 'accepted') {
         throw new HttpError(409, 'This person has already joined.');
     }
-    if ($invite['status'] === 'pending' && strtotime($invite['sent_at'] . ' UTC') > time() - 3600) {
+    if ((int) $invite['send_count'] >= INVITE_MAX_SENDS) {
+        throw new HttpError(429, 'This invite has already been sent ' . INVITE_MAX_SENDS . ' times. Share the link with them directly instead.');
+    }
+    if (strtotime($invite['sent_at'] . ' UTC') > time() - 3600) {
         throw new HttpError(429, 'You already invited this person in the last hour. You can resend the invite after that.');
     }
 }
@@ -73,7 +76,7 @@ function send_invite(int $id): array
     $token = random_token();
     q(
         "UPDATE user_invites SET token_hash = ?, status = 'pending', accepted_user_id = NULL, accepted_at = NULL,
-         sent_at = UTC_TIMESTAMP(), expires_at = UTC_TIMESTAMP() + INTERVAL " . INVITE_TTL_DAYS . ' DAY WHERE id = ?',
+         send_count = send_count + 1, sent_at = UTC_TIMESTAMP(), expires_at = UTC_TIMESTAMP() + INTERVAL " . INVITE_TTL_DAYS . ' DAY WHERE id = ?',
         [invite_hash($token), $id]
     );
     $invite = load_own_invite($id);
@@ -106,7 +109,7 @@ return static function (Router $r): void {
             throw new HttpError(422, 'Please enter a valid email address.');
         }
         assert_can_invite($email);
-        $existing = q_one('SELECT id, status, sent_at FROM user_invites WHERE inviter_id = ? AND email = ?', [uid(), $email]);
+        $existing = q_one('SELECT id, status, sent_at, send_count FROM user_invites WHERE inviter_id = ? AND email = ?', [uid(), $email]);
         if ($existing) {
             assert_resend_allowed($existing);
         }
