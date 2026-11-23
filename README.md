@@ -60,6 +60,10 @@ UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
 
 Ads render in three responsive slots: a banner above page content (320×50 / 728×90 / 970×90), a right-hand rail on wide screens (160×600 / 300×600) and a footer unit below content (300×250 / 728×90). Nothing loads from Google until ads are switched on and a publisher ID and that slot's ID are set; while ads are on but a slot has no ID, admins see a dashed placeholder where it will appear. Users flagged `ad_free` never see ads (the hook for a future paid ad-free plan). AdSense also needs an `ads.txt` at the site root, e.g. `google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0`.
 
+## Feedback
+
+Any signed-in user can send feedback (optional subject + message) from **Feedback** (`/feedback`) and see the status of what they've sent. Admins review it in the Feedback panel on `/admin`, filter by new/read/resolved and mark items read or resolved; the Admin sidebar link shows the number of new items.
+
 ## Invites
 
 Any signed-in user can invite people from **Invite friends** (`/invite`). The invitee gets an email with a sign-up link (`/signup?invite=…`, valid 14 days); the inviter also gets the link to copy, in case the host's mail doesn't arrive. Signing up through the link with the invited address connects the new member with that inviter and notifies them; once the new member verifies their email (or resets their password), every other open invite for that address is accepted the same way. The link isn't treated as proof of email ownership, since the inviter can see it too. An invite can be resent at most once an hour and 5 times in total, or revoked; each user can send 20 per 24 hours, and existing members can't be invited. Sign-up stays open to everyone.
@@ -70,13 +74,14 @@ All endpoints are under `/api`. Every endpoint needs `Authorization: Bearer <tok
 
 | Area | Endpoints |
 |---|---|
-| Admin (admins only) | `GET/PUT /admin/settings`, `GET /admin/users?search=&status=active\|disabled\|admin`, `PUT /admin/users/{id}` (`disabled`, `role`, `ad_free`) |
+| Admin (admins only) | `GET/PUT /admin/settings`, `GET /admin/users?search=&status=active\|disabled\|admin`, `PUT /admin/users/{id}` (`disabled`, `role`, `ad_free`), `GET /admin/feedback?status=new\|read\|resolved`, `PUT /admin/feedback/{id}` (`status`) |
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/logout`, `GET /auth/me`, `POST /auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`, `/auth/resend-verification`, `PUT /auth/password` |
 | Profile | `GET/PUT /profile`, `POST/DELETE /profile/avatar`, `GET/PUT /profile/play-mode-settings`, `POST /profile/calendar-token`, `GET /users/search` |
-| Songs | `GET/POST /songs`, `GET/PUT/DELETE /songs/{id}`, `GET /songs/search?q=` (catalog + lrclib), `POST /songs/import/match`, `POST /songs/import` |
+| Songs | `GET/POST /songs`, `GET/PUT/DELETE /songs/{id}`, `GET /songs/search?q=&artist=&album=` (catalog + lrclib; `q` is the title), `POST /songs/import/match`, `POST /songs/import` |
 | Setlists | `GET/POST /setlists`, `GET/PUT/DELETE /setlists/{id}`, `PUT /setlists/{id}/songs` |
 | Gigs | `GET/POST /gigs`, `GET/PUT/DELETE /gigs/{id}`, `PUT /gigs/{id}/setlists`, `GET /gigs/{id}/play`, `GET /gigs/calendar.ics`, `GET /gigs/{id}/calendar.ics` |
 | Community | `GET /community/profiles`, `GET/POST /connections`, `PUT/DELETE /connections/{id}` |
+| Feedback | `GET/POST /feedback` (own submissions; `subject`, `message`) |
 | Invites | `GET/POST /invites`, `POST /invites/{id}/resend`, `DELETE /invites/{id}` (revoke), `GET /invites/lookup?token=` (public); `POST /auth/register` accepts `invite_token` |
 | Messaging | `GET/POST /conversations`, `GET/POST /conversations/{id}/messages`, `PUT /conversations/{id}/read`, `GET /messages/unread-counts` |
 | Notifications | `GET /notifications`, `GET /notifications/summary`, `PUT /notifications/read-all`, `PUT /notifications/{id}/read` |

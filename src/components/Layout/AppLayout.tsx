@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Guitar, Home, ListMusic, LogOut, Menu, Music, Plus, Shield, Upload, User, UserPlus, Users, X, MailWarning } from 'lucide-react';
+import { Calendar, Guitar, Home, ListMusic, LogOut, Menu, MessageSquare, Music, Plus, Shield, Upload, User, UserPlus, Users, X, MailWarning } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationsContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -30,7 +30,8 @@ export default function AppLayout() {
     { to: '/bands', label: 'Bands', icon: Guitar, badge: summary.pending_band_invitations },
     { to: '/community', label: 'Community', icon: Users, badge: communityBadge },
     { to: '/invite', label: 'Invite friends', icon: UserPlus, badge: 0 },
-    ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin', icon: Shield, badge: 0 }] : []),
+    { to: '/feedback', label: 'Feedback', icon: MessageSquare, badge: 0 },
+    ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin', icon: Shield, badge: summary.new_feedback }] : []),
   ];
   const quick = [
     { to: '/songs/new', label: 'Add Song', icon: Plus },

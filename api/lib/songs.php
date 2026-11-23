@@ -103,11 +103,12 @@ function catalog_upsert(array $song, string $source = 'user', ?int $lrclibId = n
     );
 }
 
-function catalog_search(string $title, string $artist = '', int $limit = 10): array
+function catalog_search(string $title, string $artist = '', int $limit = 10, string $album = ''): array
 {
     $nt = normalize_text($title);
     $na = normalize_text($artist);
-    if ($nt === '' && $na === '') {
+    $album = trim($album);
+    if ($nt === '' && $na === '' && $album === '') {
         return [];
     }
     $esc = static fn ($s) => '%' . str_replace(['%', '_'], ['\\%', '\\_'], $s) . '%';
@@ -116,10 +117,14 @@ function catalog_search(string $title, string $artist = '', int $limit = 10): ar
     if ($nt !== '' && $na !== '') {
         $where[] = 'normalized_title LIKE ? AND normalized_artist LIKE ?';
         array_push($params, $esc($nt), $esc($na));
-    } else {
+    } elseif ($nt !== '' || $na !== '') {
         $term = $nt !== '' ? $nt : $na;
         $where[] = '(normalized_title LIKE ? OR normalized_artist LIKE ?)';
         array_push($params, $esc($term), $esc($term));
+    }
+    if ($album !== '') {
+        $where[] = 'album LIKE ?';
+        $params[] = $esc($album);
     }
     $params[] = $nt;
     $rows = q_all(
@@ -144,14 +149,18 @@ function catalog_search(string $title, string $artist = '', int $limit = 10): ar
     ], $rows);
 }
 
-function lrclib_url(string $title, string $artist): string
+/** lrclib needs a track name or free-text q, so artist/album-only searches fall back to q. */
+function lrclib_url(string $title, string $artist, string $album = ''): string
 {
-    $params = [];
-    if ($title !== '') {
-        $params['track_name'] = $title;
+    if ($title === '') {
+        return 'https://lrclib.net/api/search?' . http_build_query(['q' => trim($artist . ' ' . $album)]);
     }
+    $params = ['track_name' => $title];
     if ($artist !== '') {
         $params['artist_name'] = $artist;
+    }
+    if ($album !== '') {
+        $params['album_name'] = $album;
     }
     return 'https://lrclib.net/api/search?' . http_build_query($params);
 }
@@ -184,21 +193,27 @@ function lrclib_map(?array $data, int $limit = 15): array
     return array_slice(dedupe_results($out), 0, $limit);
 }
 
-/** Fetches several lrclib searches in parallel. Returns [index => results|null]. null means the request failed. */
+/** @return array{0: string, 1: string, 2: string} */
+function lrclib_query_args(array $query): array
+{
+    return [(string) ($query[0] ?? ''), (string) ($query[1] ?? ''), (string) ($query[2] ?? '')];
+}
+
+/** Fetches several lrclib searches ([title, artist, album?] each) in parallel. Returns [index => results|null]. null means the request failed. */
 function lrclib_multi(array $queries, int $timeout = 5): array
 {
     $results = [];
     if (!function_exists('curl_multi_init')) {
-        foreach ($queries as $i => [$t, $a]) {
-            $data = http_get_json(lrclib_url($t, $a), $timeout);
+        foreach ($queries as $i => $query) {
+            $data = http_get_json(lrclib_url(...lrclib_query_args($query)), $timeout);
             $results[$i] = $data === null ? null : lrclib_map($data);
         }
         return $results;
     }
     $mh = curl_multi_init();
     $handles = [];
-    foreach ($queries as $i => [$t, $a]) {
-        $ch = curl_init(lrclib_url($t, $a));
+    foreach ($queries as $i => $query) {
+        $ch = curl_init(lrclib_url(...lrclib_query_args($query)));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $timeout,

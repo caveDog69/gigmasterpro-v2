@@ -1,4 +1,4 @@
-import type { CommitmentLevel, ExperienceLevel, GigStatus } from './types';
+import type { CommitmentLevel, ExperienceLevel, FeedbackStatus, GigStatus } from './types';
 
 export const KEY_OPTIONS = [
   'C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B',
@@ -75,3 +75,9 @@ export const PASSWORD_RULES: { label: string; test: (p: string) => boolean }[] =
   { label: 'A number', test: (p) => /[0-9]/.test(p) },
   { label: 'A special character', test: (p) => /[^A-Za-z0-9]/.test(p) },
 ];
+
+export const FEEDBACK_STATUS_STYLES: Record<FeedbackStatus, { label: string; className: string }> = {
+  new: { label: 'New', className: 'bg-purple-500/15 text-purple-200' },
+  read: { label: 'Read', className: 'bg-sky-500/15 text-sky-200' },
+  resolved: { label: 'Resolved', className: 'bg-emerald-500/15 text-emerald-200' },
+};

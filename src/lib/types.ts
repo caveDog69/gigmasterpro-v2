@@ -233,6 +233,7 @@ export interface NotificationSummary {
   pending_connections: number;
   pending_band_invitations: number;
   latest_notification_id: number;
+  new_feedback: number;
 }
 
 export type BandRole = 'owner' | 'admin' | 'member';
@@ -328,4 +329,22 @@ export interface InviteSent {
 export interface InviteLookup {
   email: string;
   inviter: { display_name: string; username: string; avatar_url: string | null };
+}
+
+export type FeedbackStatus = 'new' | 'read' | 'resolved';
+
+export interface Feedback {
+  id: number;
+  subject: string | null;
+  message: string;
+  status: FeedbackStatus;
+  created_at: string;
+  updated_at: string;
+  user: { id: number; email: string; username: string | null; display_name: string | null; avatar_url: string | null };
+}
+
+export interface AdminFeedbackList {
+  total: number;
+  feedback: Feedback[];
+  counts: Record<FeedbackStatus | 'all', number>;
 }
