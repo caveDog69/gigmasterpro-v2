@@ -17,7 +17,7 @@ Gig management for working musicians: repertoire, setlists, gigs, stage Play Mod
    | `FTP_SERVER`, `ftpusername`, `ftppassword` | FTP login (same names as the original repo) |
    | `DB_NAME`, `DB_USER`, `DB_PASS` (optional `DB_HOST`, default `localhost`) | Production database |
    | `DEV_DB_NAME`, `DEV_DB_USER`, `DEV_DB_PASS` (optional `DEV_DB_HOST`) | `/dev` preview database |
-   | `MAIL_FROM` (optional) | e.g. `GigMasterPro <no-reply@yourdomain.com>` |
+   | `MAIL_FROM` (optional) | Bare address only, e.g. `no-reply@yourdomain.com` (the "GigMasterPro" sender name is added automatically). Defaults to `no-reply@<site domain>` |
 
    | Variable | Purpose |
    |---|---|
@@ -29,7 +29,7 @@ Gig management for working musicians: repertoire, setlists, gigs, stage Play Mod
 3. Push to `main` to deploy production, or to `dev` to deploy the preview at `/dev/`. The workflow lints and builds the app, writes `api/config.php` from the secrets, and uploads everything over FTP. Files in `uploads/` are never deleted.
 4. The schema is created automatically on the first API request. Open `https://yourdomain.com/api/health` to check PHP, the extensions, the database connection and the uploads folder.
 
-Password-reset and verification emails use PHP `mail()`. Most cPanel hosts support it out of the box. Send from an address on your own domain for better deliverability.
+Password-reset and verification emails use PHP `mail()`. Most cPanel hosts support it out of the box. Send from an address on your own domain for better deliverability: in cPanel, create that mailbox and make SPF and DKIM valid under **Email → Email Deliverability**. Use **Track Delivery** to check whether a message was sent.
 
 ## Local development
 
