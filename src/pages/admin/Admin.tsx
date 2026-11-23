@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Ban, CheckCircle2, Megaphone, Search, Shield, ShieldOff, Sparkles } from 'lucide-react';
+import { Ban, CheckCheck, CheckCircle2, Eye, Megaphone, MessageSquare, RotateCcw, Search, Shield, ShieldOff, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationsContext';
 import { useToast } from '../../contexts/ToastContext';
 import { api, errorMessage } from '../../lib/api';
-import { cx, formatDate } from '../../lib/format';
-import type { AdminUser, AdminUserList, AdSettings } from '../../lib/types';
+import { FEEDBACK_STATUS_STYLES } from '../../lib/constants';
+import { cx, formatDate, formatDateTime } from '../../lib/format';
+import type { AdminFeedbackList, AdminUser, AdminUserList, AdSettings, Feedback, FeedbackStatus } from '../../lib/types';
 import { Avatar, ConfirmDialog, ErrorBanner, Field, PageHeader, PageLoader, Spinner, Toggle } from '../../components/ui';
 
 type Status = 'all' | 'active' | 'disabled' | 'admin';
@@ -14,8 +16,9 @@ export default function Admin() {
   useEffect(() => { document.title = 'Admin · GigMasterPro'; }, []);
   return (
     <div>
-      <PageHeader title="Admin" icon={<Shield className="h-5 w-5" />} subtitle="Site-wide ads and user accounts." />
+      <PageHeader title="Admin" icon={<Shield className="h-5 w-5" />} subtitle="Site-wide ads, user accounts and feedback." />
       <div className="space-y-6">
+        <FeedbackPanel />
         <AdsPanel />
         <UsersPanel />
       </div>
@@ -224,6 +227,121 @@ function UsersPanel() {
         onConfirm={() => confirm && update(confirm, { disabled: true }, 'User disabled.')}
         onCancel={() => setConfirm(null)}
       />
+    </section>
+  );
+}
+
+type FeedbackFilter = FeedbackStatus | 'all';
+
+function FeedbackPanel() {
+  const toast = useToast();
+  const { refresh: refreshSummary } = useNotifications();
+  const [status, setStatus] = useState<FeedbackFilter>('new');
+  const [offset, setOffset] = useState(0);
+  const [data, setData] = useState<AdminFeedbackList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const load = useCallback(() => {
+    setError(null);
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
+    if (status !== 'all') params.set('status', status);
+    api.get<AdminFeedbackList>(`/admin/feedback?${params}`).then(setData).catch((e) => setError(errorMessage(e)));
+  }, [status, offset]);
+  useEffect(load, [load]);
+
+  const setFeedbackStatus = async (f: Feedback, next: FeedbackStatus) => {
+    setBusyId(f.id);
+    try {
+      await api.put<Feedback>(`/admin/feedback/${f.id}`, { status: next });
+      load();
+      refreshSummary();
+      toast.success(next === 'resolved' ? 'Feedback resolved.' : next === 'read' ? 'Marked as read.' : 'Marked as new.');
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const filters: { id: FeedbackFilter; label: string }[] = [
+    { id: 'new', label: 'New' },
+    { id: 'read', label: 'Read' },
+    { id: 'resolved', label: 'Resolved' },
+    { id: 'all', label: 'All' },
+  ];
+  const name = (f: Feedback) => f.user.display_name || f.user.username || f.user.email;
+
+  return (
+    <section className="card p-5" aria-labelledby="feedback-heading">
+      <h2 id="feedback-heading" className="mb-4 flex items-center gap-2 text-lg font-semibold text-white"><MessageSquare className="h-5 w-5 text-purple-400" /> Feedback</h2>
+      <div className="mb-4 flex flex-wrap gap-1" role="tablist">
+        {filters.map((f) => (
+          <button
+            key={f.id}
+            role="tab"
+            aria-selected={status === f.id}
+            onClick={() => { setOffset(0); setStatus(f.id); }}
+            className={cx('rounded-lg px-3 py-1.5 text-sm transition', status === f.id ? 'bg-purple-500/15 text-purple-200' : 'text-gray-400 hover:bg-gray-800 hover:text-white')}
+          >
+            {f.label}{data && <span className="ml-1 text-xs text-gray-500">{data.counts[f.id]}</span>}
+          </button>
+        ))}
+      </div>
+      {error && <ErrorBanner message={error} onRetry={load} />}
+      {!data && !error && <PageLoader label="Loading feedback…" />}
+      {data && (
+        <>
+          <ul className="divide-y divide-gray-800">
+            {data.feedback.map((f) => {
+              const st = FEEDBACK_STATUS_STYLES[f.status];
+              const busy = busyId === f.id;
+              return (
+                <li key={f.id} className="flex flex-col gap-3 py-4 md:flex-row md:items-start">
+                  <div className="flex min-w-0 flex-1 gap-3">
+                    <Avatar name={name(f)} url={f.user.avatar_url} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-white">
+                        <span className="truncate">{f.subject || 'No subject'}</span>
+                        <span className={cx('rounded-full px-2.5 py-0.5 text-xs font-medium', st.className)}>{st.label}</span>
+                      </p>
+                      <p className="truncate text-xs text-gray-500">{name(f)} · <a className="link" href={`mailto:${f.user.email}`}>{f.user.email}</a> · {formatDateTime(f.created_at)}</p>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-300">{f.message}</p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {busy && <Spinner className="h-4 w-4" />}
+                    {f.status === 'new' && (
+                      <button className="btn-ghost btn-sm" disabled={busy} onClick={() => setFeedbackStatus(f, 'read')}>
+                        <Eye className="h-3.5 w-3.5" /> Mark read
+                      </button>
+                    )}
+                    {f.status !== 'resolved' ? (
+                      <button className="btn-secondary btn-sm" disabled={busy} onClick={() => setFeedbackStatus(f, 'resolved')}>
+                        <CheckCheck className="h-3.5 w-3.5" /> Resolve
+                      </button>
+                    ) : (
+                      <button className="btn-ghost btn-sm" disabled={busy} onClick={() => setFeedbackStatus(f, 'read')}>
+                        <RotateCcw className="h-3.5 w-3.5" /> Reopen
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+            {data.feedback.length === 0 && <li className="py-6 text-center text-sm text-gray-500">No {status === 'all' ? '' : `${FEEDBACK_STATUS_STYLES[status].label.toLowerCase()} `}feedback.</li>}
+          </ul>
+          {data.total > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
+              <span>{offset + 1}–{Math.min(offset + PAGE_SIZE, data.total)} of {data.total}</span>
+              <div className="flex gap-2">
+                <button className="btn-secondary btn-sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous</button>
+                <button className="btn-secondary btn-sm" disabled={offset + PAGE_SIZE >= data.total} onClick={() => setOffset(offset + PAGE_SIZE)}>Next</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }

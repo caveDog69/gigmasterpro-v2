@@ -77,11 +77,12 @@ return static function (Router $r): void {
         $q = trim((string) query_param('q', ''));
         $title = trim((string) query_param('title', $q));
         $artist = trim((string) query_param('artist', ''));
+        $album = trim((string) query_param('album', ''));
         if ($title === '' && $artist === '') {
             return ['results' => [], 'lrclib_ok' => true];
         }
-        $catalog = catalog_search($title, $artist, 10);
-        $lrclib = query_param('lrclib', '1') === '0' ? [] : (lrclib_multi([[$title, $artist]])[0]);
+        $catalog = catalog_search($title, $artist, 10, $album);
+        $lrclib = query_param('lrclib', '1') === '0' ? [] : (lrclib_multi([[$title, $artist, $album]])[0]);
         return [
             'results' => array_slice(dedupe_results(array_merge($catalog, $lrclib ?? [])), 0, 25),
             'lrclib_ok' => $lrclib !== null,

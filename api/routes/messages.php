@@ -122,6 +122,7 @@ return static function (Router $r): void {
     });
 
     $r->get('/notifications/summary', static function () {
+        $isAdmin = (require_user()['role'] ?? 'user') === 'admin';
         return [
             'unread_notifications' => (int) q_val('SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0', [uid()]),
             'unread_messages' => (int) q_val(
@@ -132,6 +133,7 @@ return static function (Router $r): void {
             'pending_connections' => (int) q_val("SELECT COUNT(*) FROM user_connections WHERE recipient_id = ? AND status = 'pending'", [uid()]),
             'pending_band_invitations' => (int) q_val("SELECT COUNT(*) FROM band_invitations WHERE invitee_id = ? AND status = 'pending'", [uid()]),
             'latest_notification_id' => (int) q_val('SELECT COALESCE(MAX(id), 0) FROM notifications WHERE user_id = ?', [uid()]),
+            'new_feedback' => $isAdmin ? (int) q_val("SELECT COUNT(*) FROM feedback WHERE status = 'new'") : 0,
         ];
     });
 

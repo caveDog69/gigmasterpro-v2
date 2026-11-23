@@ -25,6 +25,7 @@ const BandsList = lazy(() => import('./pages/bands/BandsList'));
 const BandDetail = lazy(() => import('./pages/bands/BandDetail'));
 const Admin = lazy(() => import('./pages/admin/Admin'));
 const Invites = lazy(() => import('./pages/invites/Invites'));
+const Feedback = lazy(() => import('./pages/feedback/Feedback'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="/bands" element={<BandsList />} />
           <Route path="/bands/:id" element={<BandDetail />} />
           <Route path="/invite" element={<Invites />} />
+          <Route path="/feedback" element={<Feedback />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
           <Route path="*" element={<NotFound />} />

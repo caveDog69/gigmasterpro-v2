@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 
 const POLL_MS = 8000;
-const EMPTY: NotificationSummary = { unread_notifications: 0, unread_messages: 0, pending_connections: 0, pending_band_invitations: 0, latest_notification_id: 0 };
+const EMPTY: NotificationSummary = { unread_notifications: 0, unread_messages: 0, pending_connections: 0, pending_band_invitations: 0, latest_notification_id: 0, new_feedback: 0 };
 
 interface NotificationsState {
   summary: NotificationSummary;
