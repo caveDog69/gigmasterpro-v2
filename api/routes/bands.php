@@ -39,8 +39,9 @@ function band_detail(int $bandId): array
         [$bandId]
     ));
     $band['setlists'] = array_map('band_share_out', q_all(
-        'SELECT bs.id AS share_id, bs.added_by, bs.created_at AS shared_at, st.id, st.user_id, st.name, st.description, st.duration,
-                (SELECT COUNT(*) FROM setlist_songs ss WHERE ss.setlist_id = st.id) AS song_count, p.display_name AS added_by_name
+        'SELECT bs.id AS share_id, bs.added_by, bs.created_at AS shared_at, st.id, st.user_id, st.name, st.description,
+                (SELECT COALESCE(SUM(s.duration), 0) FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id WHERE ss.setlist_id = st.id AND ' . song_not_private_sql('s') . ') AS duration,
+                (SELECT COUNT(*) FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id WHERE ss.setlist_id = st.id AND ' . song_not_private_sql('s') . ') AS song_count, p.display_name AS added_by_name
          FROM band_setlists bs JOIN setlists st ON st.id = bs.setlist_id JOIN profiles p ON p.id = bs.added_by WHERE bs.band_id = ? ORDER BY st.name',
         [$bandId]
     ));

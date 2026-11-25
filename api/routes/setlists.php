@@ -56,6 +56,9 @@ function setlist_detail(int $id): array
         $entry['song'] = out_row($row);
         return $entry;
     }, $rows);
+    if (!$setlist['is_owner']) {
+        $setlist['duration'] = array_sum(array_map(static fn ($e) => (int) $e['song']['duration'], $setlist['songs']));
+    }
     return $setlist;
 }
 
