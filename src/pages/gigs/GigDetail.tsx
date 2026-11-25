@@ -109,10 +109,10 @@ export default function GigDetail() {
                   <li key={e.id} className="flex items-start gap-4 px-5 py-2.5 text-sm">
                     <span className="w-5 text-right text-gray-500">{i + 1}</span>
                     <div className="min-w-0 flex-1">
-                      <span className="text-gray-100">{e.song.title}</span> <span className="text-xs text-gray-500">{e.song.artist}</span>
+                      <span className="text-gray-100">{e.song.title}</span> <span className="text-xs text-gray-500">{e.song.is_private ? 'Private' : e.song.artist}</span>
                       {(e.notes || e.song.notes) && <p className="text-xs text-purple-300">{e.notes || e.song.notes}</p>}
                     </div>
-                    <span className="text-xs text-gray-400">{[e.song.key, `${e.song.tempo} BPM`, e.song.duration ? formatDuration(e.song.duration) : ''].filter(Boolean).join(' · ')}</span>
+                    <span className="text-xs text-gray-400">{[e.song.key, e.song.tempo ? `${e.song.tempo} BPM` : '', e.song.duration ? formatDuration(e.song.duration) : ''].filter(Boolean).join(' · ')}</span>
                   </li>
                 ))}
               </ol>

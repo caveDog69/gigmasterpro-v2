@@ -45,11 +45,11 @@ function setlist_detail(int $id): array
     }
     $setlist = out_row($setlist);
     $setlist['is_owner'] = (int) $setlist['user_id'] === uid();
-    $rows = q_all(
+    $rows = array_map('mask_private_song', q_all(
         'SELECT ss.id AS entry_id, ss.position, ss.notes AS entry_notes, s.* FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id
          WHERE ss.setlist_id = ? ORDER BY ss.position',
         [$id]
-    );
+    ));
     $setlist['songs'] = array_map(static function ($row) use ($id) {
         $entry = ['id' => (int) $row['entry_id'], 'setlist_id' => $id, 'song_id' => (int) $row['id'], 'position' => (int) $row['position'], 'notes' => $row['entry_notes']];
         unset($row['entry_id'], $row['position'], $row['entry_notes']);

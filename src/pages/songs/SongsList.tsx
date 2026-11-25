@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDownAZ, Download, FileText, Guitar, Music, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react';
+import { ArrowDownAZ, Download, FileText, Guitar, Lock, Music, Pencil, Plus, Search, Trash2, Upload, Users } from 'lucide-react';
 import { api, downloadFile, errorMessage } from '../../lib/api';
 import type { Song } from '../../lib/types';
 import { formatDuration } from '../../lib/format';
@@ -118,6 +118,8 @@ export default function SongsList() {
                         <span className="flex items-center gap-2 font-medium text-gray-100">
                           {s.title}
                           {s.is_original && <span className="chip bg-amber-500/15 text-amber-300 ring-amber-500/30">Original</span>}
+                          {s.visibility === 'private' && <span className="chip bg-gray-800 text-gray-300 ring-gray-700" title="Only you can see this song"><Lock className="h-3 w-3" /> Private</span>}
+                          {s.visibility === 'connections' && <span className="chip bg-sky-500/15 text-sky-300 ring-sky-500/30" title="Visible to band members and connections"><Users className="h-3 w-3" /> Connections</span>}
                         </span>
                         <span className="block text-xs text-gray-500">{s.artist}{s.album ? ` · ${s.album}` : ''}</span>
                         <span className="mt-1 flex gap-3 text-xs text-gray-400 md:hidden">

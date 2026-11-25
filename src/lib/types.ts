@@ -69,6 +69,8 @@ export interface Profile {
 
 export type ProfileBrief = Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'city' | 'state' | 'instrument' | 'genre'>;
 
+export type SongVisibility = 'private' | 'bands' | 'connections';
+
 export interface Song {
   id: number;
   user_id: number;
@@ -85,6 +87,8 @@ export interface Song {
   chords?: string | null;
   notes: string | null;
   is_original: boolean;
+  visibility: SongVisibility;
+  is_private?: boolean;
   has_lyrics?: boolean;
   has_chords?: boolean;
   is_owner?: boolean;
@@ -192,6 +196,10 @@ export interface CommunityProfile extends Profile {
   connection_status: 'none' | 'connected' | 'pending_sent' | 'pending_received' | 'declined';
   connection_id: number | null;
   unread_count: number;
+}
+
+export interface HiddenMember extends ProfileBrief {
+  hidden_at: string;
 }
 
 export interface Conversation {

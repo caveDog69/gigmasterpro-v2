@@ -21,6 +21,13 @@ function visible_sql(string $type, string $alias): string
     ];
     [$table, $col] = $map[$type];
     $viewer = (string) uid();
+    if ($type === 'song') {
+        $sql = "({$alias}.user_id = :viewer OR ({$alias}.visibility <> 'private' AND EXISTS (SELECT 1 FROM band_songs bx JOIN band_members bmx ON bmx.band_id = bx.band_id
+                 WHERE bx.song_id = {$alias}.id AND bmx.user_id = :viewer))
+                 OR ({$alias}.visibility = 'connections' AND EXISTS (SELECT 1 FROM user_connections cx WHERE cx.status = 'accepted'
+                 AND ((cx.requester_id = {$alias}.user_id AND cx.recipient_id = :viewer) OR (cx.recipient_id = {$alias}.user_id AND cx.requester_id = :viewer)))))";
+        return str_replace(':viewer', $viewer, $sql);
+    }
     $sql = "({$alias}.user_id = :viewer OR EXISTS (SELECT 1 FROM {$table} bx JOIN band_members bmx ON bmx.band_id = bx.band_id
              WHERE bx.{$col} = {$alias}.id AND bmx.user_id = :viewer)";
     if ($type === 'setlist') {
@@ -28,6 +35,36 @@ function visible_sql(string $type, string $alias): string
                   JOIN band_members bmg ON bmg.band_id = bgx.band_id WHERE gsx.setlist_id = {$alias}.id AND bmg.user_id = :viewer)";
     }
     return str_replace(':viewer', $viewer, $sql . ')');
+}
+
+/** Reduces someone else's private song to its title (and length, so set runtimes stay right). */
+function mask_private_song(array $s): array
+{
+    if ((int) $s['user_id'] === uid() || $s['visibility'] !== 'private') {
+        return $s;
+    }
+    foreach (['artist', 'album', 'key', 'genre', 'guitar_tuning'] as $k) {
+        $s[$k] = '';
+    }
+    foreach (['release_date', 'lyrics', 'chords', 'notes'] as $k) {
+        if (array_key_exists($k, $s)) {
+            $s[$k] = null;
+        }
+    }
+    $s['tempo'] = $s['is_original'] = 0;
+    $s['has_lyrics'] = $s['has_chords'] = 0;
+    unset($s['created_at'], $s['updated_at']);
+    $s['is_private'] = true;
+    return $s;
+}
+
+/** True when either user has blocked the other. */
+function is_blocked_between(int $a, int $b): bool
+{
+    return (bool) q_val(
+        "SELECT 1 FROM user_connections WHERE status = 'blocked' AND ((requester_id = ? AND recipient_id = ?) OR (requester_id = ? AND recipient_id = ?))",
+        [$a, $b, $b, $a]
+    );
 }
 
 function band_membership(int $bandId, int $userId): ?array

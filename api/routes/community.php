@@ -15,6 +15,16 @@ function are_connected(int $a, int $b): bool
     return $c !== null && $c['status'] === 'accepted';
 }
 
+/** Reads and validates the `user_id` of another musician from the request body. */
+function community_target(): int
+{
+    $other = (int) input('user_id', 0);
+    if ($other === uid() || !q_val('SELECT 1 FROM profiles WHERE id = ?', [$other])) {
+        throw new HttpError(422, 'Invalid musician.');
+    }
+    return $other;
+}
+
 function connection_out(array $row): array
 {
     $requester = extract_brief($row, 'rq');
@@ -45,8 +55,8 @@ return static function (Router $r): void {
                 [$me['latitude'], $me['longitude']] = $coords;
             }
         }
-        $where = ['p.is_public = 1', 'p.id <> ?', 'p.id IN (SELECT id FROM users WHERE disabled_at IS NULL)'];
-        $params = [uid()];
+        $where = ['p.is_public = 1', 'p.id <> ?', 'p.id IN (SELECT id FROM users WHERE disabled_at IS NULL)', 'p.id NOT IN (SELECT hidden_user_id FROM hidden_members WHERE user_id = ?)'];
+        $params = [uid(), uid()];
         $search = trim((string) query_param('search', ''));
         if ($search !== '') {
             $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $search) . '%';
@@ -121,14 +131,18 @@ return static function (Router $r): void {
             }
             return $a['distance_miles'] <=> $b['distance_miles'];
         });
-        return ['profiles' => $out, 'location_known' => $me && $me['latitude'] !== null];
+        return [
+            'profiles' => $out,
+            'location_known' => $me && $me['latitude'] !== null,
+            'hidden_count' => (int) q_val('SELECT COUNT(*) FROM hidden_members WHERE user_id = ?', [uid()]),
+        ];
     });
 
     $r->get('/connections', static function () {
         $rows = q_all(
             'SELECT c.*, ' . profile_brief_cols('rq', 'rq') . ', ' . profile_brief_cols('rc', 'rc') . '
              FROM user_connections c JOIN profiles rq ON rq.id = c.requester_id JOIN profiles rc ON rc.id = c.recipient_id
-             WHERE c.requester_id = ? OR c.recipient_id = ? ORDER BY c.updated_at DESC',
+             WHERE (c.requester_id = ? AND c.status <> \'blocked\') OR c.recipient_id = ? ORDER BY c.updated_at DESC',
             [uid(), uid()]
         );
         return array_map('connection_out', $rows);
@@ -172,6 +186,9 @@ return static function (Router $r): void {
         }
         $status = (string) input('status', '');
         $isRecipient = (int) $c['recipient_id'] === uid();
+        if ($c['status'] === 'blocked' && !$isRecipient) {
+            throw new HttpError(404, 'Connection not found.');
+        }
         if (in_array($status, ['accepted', 'declined'], true)) {
             if (!$isRecipient || $c['status'] !== 'pending') {
                 throw new HttpError(403, 'Only the recipient can respond to a pending request.');
@@ -196,10 +213,57 @@ return static function (Router $r): void {
         if (!$c) {
             throw new HttpError(404, 'Connection not found.');
         }
-        if ($c['status'] === 'blocked' && (int) $c['recipient_id'] === uid()) {
+        if ($c['status'] === 'blocked' && (int) $c['requester_id'] === uid()) {
             throw new HttpError(403, 'Connection not found.');
         }
         q('DELETE FROM user_connections WHERE id = ?', [$id]);
         return ['ok' => true];
+    });
+
+    $r->get('/community/hidden', static function () {
+        $rows = q_all(
+            'SELECT h.created_at AS hidden_at, ' . profile_brief_cols('p', 'p') . '
+             FROM hidden_members h JOIN profiles p ON p.id = h.hidden_user_id WHERE h.user_id = ? ORDER BY h.created_at DESC',
+            [uid()]
+        );
+        return array_map(static function ($row) {
+            $brief = extract_brief($row, 'p');
+            return $brief + ['hidden_at' => $row['hidden_at']];
+        }, $rows);
+    });
+
+    $r->post('/community/hidden', static function () {
+        $other = community_target();
+        q('INSERT IGNORE INTO hidden_members (user_id, hidden_user_id) VALUES (?, ?)', [uid(), $other]);
+        return ['ok' => true];
+    });
+
+    $r->delete('/community/hidden/{id}', static function ($p) {
+        q('DELETE FROM hidden_members WHERE user_id = ? AND hidden_user_id = ?', [uid(), id_param($p)]);
+        return ['ok' => true];
+    });
+
+    $r->post('/community/blocks', static function () {
+        $other = community_target();
+        $c = connection_between(uid(), $other);
+        if (!$c) {
+            q("INSERT INTO user_connections (requester_id, recipient_id, status) VALUES (?, ?, 'blocked')", [$other, uid()]);
+        } elseif ($c['status'] !== 'blocked') {
+            q("UPDATE user_connections SET requester_id = ?, recipient_id = ?, status = 'blocked', message = NULL WHERE id = ?", [$other, uid(), $c['id']]);
+        }
+        q('DELETE FROM hidden_members WHERE user_id = ? AND hidden_user_id = ?', [uid(), $other]);
+        return ['ok' => true];
+    });
+
+    $r->get('/community/members/{id}/songs', static function ($p) {
+        $other = id_param($p);
+        if (!are_connected(uid(), $other)) {
+            throw new HttpError(404, 'Musician not found.');
+        }
+        return out_rows(q_all(
+            "SELECT id, user_id, title, artist, album, `key`, tempo, duration, genre, is_original FROM songs
+             WHERE user_id = ? AND visibility = 'connections' ORDER BY title",
+            [$other]
+        ));
     });
 };

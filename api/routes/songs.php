@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const SONG_LIST_COLS = 's.id, s.user_id, s.title, s.artist, s.album, s.release_date, s.`key`, s.tempo, s.duration, s.genre, s.guitar_tuning, s.notes, s.is_original, s.created_at, s.updated_at,
+const SONG_LIST_COLS = 's.id, s.user_id, s.title, s.artist, s.album, s.release_date, s.`key`, s.tempo, s.duration, s.genre, s.guitar_tuning, s.notes, s.is_original, s.visibility, s.created_at, s.updated_at,
     (s.lyrics IS NOT NULL AND s.lyrics <> \'\') AS has_lyrics, (s.chords IS NOT NULL AND s.chords <> \'\') AS has_chords';
 
 function song_list_out(array $rows): array
@@ -168,11 +168,11 @@ return static function (Router $r): void {
 
     $r->put('/songs/{id}', static function ($p) {
         $id = id_param($p);
-        owned_or_404('songs', $id, 'Song');
+        $existing = owned_or_404('songs', $id, 'Song');
         $song = song_payload(body());
         $set = implode(', ', array_map(static fn ($c) => "`{$c}` = ?", array_keys($song)));
         q("UPDATE songs SET {$set} WHERE id = ? AND user_id = ?", array_merge(array_values($song), [$id, uid()]));
-        catalog_upsert($song, 'user', null, false);
+        catalog_upsert($song + ['visibility' => $existing['visibility']], 'user', null, false);
         refresh_setlist_durations(setlists_with_song($id));
         return out_row(q_one('SELECT * FROM songs WHERE id = ?', [$id]));
     });

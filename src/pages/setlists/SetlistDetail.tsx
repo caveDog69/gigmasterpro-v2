@@ -61,12 +61,12 @@ export default function SetlistDetail() {
             <li key={e.id} className="flex items-start gap-4 px-5 py-3">
               <span className="w-6 pt-0.5 text-right text-sm text-gray-500">{i + 1}</span>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-gray-100">{e.song.title} <span className="text-sm font-normal text-gray-500">{e.song.artist}</span></p>
+                <p className="font-medium text-gray-100">{e.song.title} <span className="text-sm font-normal text-gray-500">{e.song.artist}</span>{e.song.is_private && <span className="chip ml-2 bg-gray-800 text-gray-300 ring-gray-700" title="Only the owner can see this song's details">Private</span>}</p>
                 {(e.notes || e.song.notes) && <p className="mt-0.5 text-xs text-purple-300">{e.notes || e.song.notes}</p>}
               </div>
               <div className="flex shrink-0 gap-3 text-xs text-gray-400">
                 {e.song.key && <span className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-300">{e.song.key}</span>}
-                <span>{e.song.tempo} BPM</span>
+                {e.song.tempo > 0 && <span>{e.song.tempo} BPM</span>}
                 <span className="w-10 text-right">{e.song.duration ? formatDuration(e.song.duration) : '—'}</span>
               </div>
             </li>
