@@ -61,7 +61,7 @@ export default function BandDetail() {
     const already = new Set(band[tab].map((s) => s.id));
     try {
       let items: Pickable[] = [];
-      if (tab === 'songs') items = (await api.get<Song[]>('/songs')).map((s) => ({ id: s.id, label: s.title, sub: s.artist }));
+      if (tab === 'songs') items = (await api.get<Song[]>('/songs')).filter((s) => s.visibility !== 'private').map((s) => ({ id: s.id, label: s.title, sub: s.artist }));
       if (tab === 'setlists') items = (await api.get<Setlist[]>('/setlists')).map((s) => ({ id: s.id, label: s.name, sub: `${s.song_count ?? 0} songs` }));
       if (tab === 'gigs') items = (await api.get<Gig[]>('/gigs')).map((g) => ({ id: g.id, label: g.name, sub: formatDate(g.date_time) }));
       setPickables(items.filter((i) => !already.has(i.id)));
@@ -189,7 +189,7 @@ export default function BandDetail() {
       </Modal>
 
       <Modal open={shareOpen} onClose={() => setShareOpen(false)} title={`Share ${tab} with ${band.name}`}>
-        {!pickables ? <PageLoader /> : pickables.length === 0 ? <p className="py-6 text-center text-sm text-gray-500">Everything is already shared, or you have no {tab} yet.</p> : (
+        {!pickables ? <PageLoader /> : pickables.length === 0 ? <p className="py-6 text-center text-sm text-gray-500">Everything is already shared, or you have no {tab} yet.{tab === 'songs' && ' Private songs can’t be shared.'}</p> : (
           <>
             <ul className="max-h-80 divide-y divide-gray-800 overflow-y-auto">
               {pickables.map((p) => (

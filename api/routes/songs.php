@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const SONG_LIST_COLS = 's.id, s.user_id, s.title, s.artist, s.album, s.release_date, s.`key`, s.tempo, s.duration, s.genre, s.guitar_tuning, s.notes, s.is_original, s.created_at, s.updated_at,
+const SONG_LIST_COLS = 's.id, s.user_id, s.title, s.artist, s.album, s.release_date, s.`key`, s.tempo, s.duration, s.genre, s.guitar_tuning, s.notes, s.is_original, s.visibility, s.created_at, s.updated_at,
     (s.lyrics IS NOT NULL AND s.lyrics <> \'\') AS has_lyrics, (s.chords IS NOT NULL AND s.chords <> \'\') AS has_chords';
 
 function song_list_out(array $rows): array

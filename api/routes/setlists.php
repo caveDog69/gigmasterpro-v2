@@ -47,7 +47,7 @@ function setlist_detail(int $id): array
     $setlist['is_owner'] = (int) $setlist['user_id'] === uid();
     $rows = q_all(
         'SELECT ss.id AS entry_id, ss.position, ss.notes AS entry_notes, s.* FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id
-         WHERE ss.setlist_id = ? ORDER BY ss.position',
+         WHERE ss.setlist_id = ? AND ' . song_not_private_sql('s') . ' ORDER BY ss.position',
         [$id]
     );
     $setlist['songs'] = array_map(static function ($row) use ($id) {

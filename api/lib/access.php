@@ -21,6 +21,13 @@ function visible_sql(string $type, string $alias): string
     ];
     [$table, $col] = $map[$type];
     $viewer = (string) uid();
+    if ($type === 'song') {
+        $sql = "({$alias}.user_id = :viewer OR ({$alias}.visibility <> 'private' AND EXISTS (SELECT 1 FROM band_songs bx JOIN band_members bmx ON bmx.band_id = bx.band_id
+                 WHERE bx.song_id = {$alias}.id AND bmx.user_id = :viewer))
+                 OR ({$alias}.visibility = 'connections' AND EXISTS (SELECT 1 FROM user_connections cx WHERE cx.status = 'accepted'
+                 AND ((cx.requester_id = {$alias}.user_id AND cx.recipient_id = :viewer) OR (cx.recipient_id = {$alias}.user_id AND cx.requester_id = :viewer)))))";
+        return str_replace(':viewer', $viewer, $sql);
+    }
     $sql = "({$alias}.user_id = :viewer OR EXISTS (SELECT 1 FROM {$table} bx JOIN band_members bmx ON bmx.band_id = bx.band_id
              WHERE bx.{$col} = {$alias}.id AND bmx.user_id = :viewer)";
     if ($type === 'setlist') {
@@ -28,6 +35,21 @@ function visible_sql(string $type, string $alias): string
                   JOIN band_members bmg ON bmg.band_id = bgx.band_id WHERE gsx.setlist_id = {$alias}.id AND bmg.user_id = :viewer)";
     }
     return str_replace(':viewer', $viewer, $sql . ')');
+}
+
+/** SQL fragment hiding other people's private songs inside shared setlists and gigs. */
+function song_not_private_sql(string $alias): string
+{
+    return "({$alias}.user_id = " . uid() . " OR {$alias}.visibility <> 'private')";
+}
+
+/** True when either user has blocked the other. */
+function is_blocked_between(int $a, int $b): bool
+{
+    return (bool) q_val(
+        "SELECT 1 FROM user_connections WHERE status = 'blocked' AND ((requester_id = ? AND recipient_id = ?) OR (requester_id = ? AND recipient_id = ?))",
+        [$a, $b, $b, $a]
+    );
 }
 
 function band_membership(int $bandId, int $userId): ?array

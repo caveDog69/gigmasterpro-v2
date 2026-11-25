@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Clock, Globe, MapPin, MessageSquare, Search, UserPlus } from 'lucide-react';
+import { Ban, Check, Clock, EyeOff, Globe, MapPin, MessageSquare, Search, UserPlus } from 'lucide-react';
 import { api, errorMessage } from '../../lib/api';
-import type { CommunityProfile } from '../../lib/types';
+import type { CommunityProfile, HiddenMember } from '../../lib/types';
 import { COMMITMENT_LEVELS, EXPERIENCE_LEVELS, GENRES, INSTRUMENTS } from '../../lib/constants';
 import { useToast } from '../../contexts/ToastContext';
 import { useNotifications } from '../../contexts/NotificationsContext';
-import { Avatar, EmptyState, ErrorBanner, Modal, PageLoader, Spinner } from '../../components/ui';
+import { Avatar, ConfirmDialog, EmptyState, ErrorBanner, Modal, PageLoader, Spinner } from '../../components/ui';
+
+type Feed = { profiles: CommunityProfile[]; location_known: boolean; hidden_count: number };
 
 const label = (list: readonly { value: string; label: string }[], v: string | null) => list.find((x) => x.value === v)?.label ?? v;
 
@@ -18,12 +20,17 @@ export default function Discover() {
   const [instrument, setInstrument] = useState('');
   const [genre, setGenre] = useState('');
   const [commitment, setCommitment] = useState('');
-  const [data, setData] = useState<{ profiles: CommunityProfile[]; location_known: boolean } | null>(null);
+  const [data, setData] = useState<Feed | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requestTo, setRequestTo] = useState<CommunityProfile | null>(null);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [viewing, setViewing] = useState<CommunityProfile | null>(null);
+  const [blocking, setBlocking] = useState<CommunityProfile | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [hidden, setHidden] = useState<HiddenMember[] | null>(null);
+  const [hiddenOpen, setHiddenOpen] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -33,10 +40,65 @@ export default function Discover() {
       if (genre) qs.set('genre', genre);
       if (commitment) qs.set('commitment', commitment);
       setError(null);
-      api.get<{ profiles: CommunityProfile[]; location_known: boolean }>(`/community/profiles?${qs}`).then(setData).catch((e) => setError(errorMessage(e)));
+      api.get<Feed>(`/community/profiles?${qs}`).then(setData).catch((e) => setError(errorMessage(e)));
     }, 300);
     return () => clearTimeout(t);
-  }, [search, instrument, genre, commitment]);
+  }, [search, instrument, genre, commitment, reload]);
+
+  const dropFromFeed = (p: CommunityProfile, hiddenDelta: number) => {
+    setData((d) => d && { ...d, profiles: d.profiles.filter((x) => x.id !== p.id), hidden_count: d.hidden_count + hiddenDelta });
+    setViewing(null);
+  };
+
+  const hide = async (p: CommunityProfile) => {
+    try {
+      await api.post('/community/hidden', { user_id: p.id });
+      dropFromFeed(p, 1);
+      toast.success(`${p.display_name} is hidden from your feed.`);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+
+  const block = async () => {
+    if (!blocking) return;
+    setBusy(true);
+    try {
+      await api.post('/community/blocks', { user_id: blocking.id });
+      dropFromFeed(blocking, 0);
+      toast.success(`${blocking.display_name} is blocked. You can unblock them from the Connections tab.`);
+      setBlocking(null);
+      refresh();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openHidden = () => {
+    setHidden(null);
+    setHiddenOpen(true);
+    api.get<HiddenMember[]>('/community/hidden').then(setHidden).catch((e) => { toast.error(errorMessage(e)); setHiddenOpen(false); });
+  };
+
+  const unhide = async (m: HiddenMember) => {
+    try {
+      await api.del(`/community/hidden/${m.id}`);
+      setHidden((list) => list?.filter((x) => x.id !== m.id) ?? null);
+      setReload((n) => n + 1);
+      toast.success(`${m.display_name} is back in your feed.`);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+
+  const moderation = (p: CommunityProfile) => (
+    <div className="mr-auto flex gap-1">
+      <button className="btn-icon" onClick={() => hide(p)} aria-label={`Hide ${p.display_name}`} title="Hide from my feed"><EyeOff className="h-4 w-4" /></button>
+      <button className="btn-icon hover:text-red-400" onClick={() => setBlocking(p)} aria-label={`Block ${p.display_name}`} title="Block"><Ban className="h-4 w-4" /></button>
+    </div>
+  );
 
   const sendRequest = async () => {
     if (!requestTo) return;
@@ -84,6 +146,11 @@ export default function Discover() {
           <Link to="/profile" className="underline">Add your ZIP code</Link> to sort musicians by distance.
         </p>
       )}
+      {data && data.hidden_count > 0 && (
+        <p className="mb-4 text-sm text-gray-400">
+          <EyeOff className="mr-1 inline h-4 w-4" />{data.hidden_count} hidden member{data.hidden_count === 1 ? '' : 's'} · <button className="link" onClick={openHidden}>Manage</button>
+        </p>
+      )}
       {error ? <ErrorBanner message={error} /> : !data ? <PageLoader /> : data.profiles.length === 0 ? (
         <EmptyState icon={<Search className="h-7 w-7" />} title="No musicians found" body="Try clearing some filters. Only members with a public profile appear here." />
       ) : (
@@ -106,7 +173,7 @@ export default function Discover() {
                 {p.genre && <span className="chip bg-gray-800 text-gray-300 ring-gray-700">{p.genre}</span>}
                 {p.commitment_level && <span className="chip bg-gray-800 text-gray-300 ring-gray-700">{label(COMMITMENT_LEVELS, p.commitment_level)}</span>}
               </div>
-              <div className="mt-auto flex justify-end pt-4">{action(p)}</div>
+              <div className="mt-auto flex items-center justify-end pt-4">{moderation(p)}{action(p)}</div>
             </article>
           ))}
         </div>
@@ -141,8 +208,32 @@ export default function Discover() {
               {viewing.equipment && <div className="col-span-2"><dt className="label">Equipment</dt><dd className="whitespace-pre-wrap text-gray-200">{viewing.equipment}</dd></div>}
               {viewing.phone && <div><dt className="label">Phone</dt><dd className="text-gray-200">{viewing.phone}</dd></div>}
             </dl>
-            <div className="flex justify-end">{action(viewing)}</div>
+            <div className="flex items-center justify-end">{moderation(viewing)}{action(viewing)}</div>
           </div>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={!!blocking}
+        title={`Block ${blocking?.display_name ?? ''}?`}
+        body="You won't see each other in Discover, and they can't message you, send you connection requests or invite you to bands. Any existing connection is removed."
+        confirmLabel="Block"
+        onCancel={() => setBlocking(null)}
+        onConfirm={block}
+        busy={busy}
+      />
+
+      <Modal open={hiddenOpen} onClose={() => setHiddenOpen(false)} title="Hidden members">
+        {!hidden ? <PageLoader /> : hidden.length === 0 ? <p className="py-6 text-center text-sm text-gray-500">No hidden members.</p> : (
+          <ul className="max-h-80 divide-y divide-gray-800 overflow-y-auto">
+            {hidden.map((m) => (
+              <li key={m.id} className="flex items-center gap-3 py-2">
+                <Avatar name={m.display_name} url={m.avatar_url} size="sm" />
+                <span className="min-w-0 flex-1 truncate text-sm text-gray-200">{m.display_name} <span className="text-xs text-gray-500">@{m.username}</span></span>
+                <button className="btn-secondary btn-sm" onClick={() => unhide(m)}>Unhide</button>
+              </li>
+            ))}
+          </ul>
         )}
       </Modal>
     </div>

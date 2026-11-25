@@ -2,8 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Music, Save, Trash2 } from 'lucide-react';
 import { api, errorMessage } from '../../lib/api';
-import type { SearchResult, Song } from '../../lib/types';
-import { GENRES, KEY_OPTIONS, TUNINGS } from '../../lib/constants';
+import type { SearchResult, Song, SongVisibility } from '../../lib/types';
+import { GENRES, KEY_OPTIONS, SONG_VISIBILITY, TUNINGS } from '../../lib/constants';
 import { formatDuration, parseDuration } from '../../lib/format';
 import { transposeKey, transposeText } from '../../lib/transpose';
 import { useToast } from '../../contexts/ToastContext';
@@ -12,12 +12,12 @@ import { ConfirmDialog, ErrorBanner, Field, PageHeader, PageLoader, Spinner, Tog
 
 interface FormState {
   title: string; artist: string; album: string; release_date: string; key: string; tempo: string; duration: string;
-  genre: string; guitar_tuning: string; lyrics: string; chords: string; notes: string; is_original: boolean; lrclib_id: number | null;
+  genre: string; guitar_tuning: string; lyrics: string; chords: string; notes: string; is_original: boolean; visibility: SongVisibility; lrclib_id: number | null;
 }
 
 const EMPTY: FormState = {
   title: '', artist: '', album: '', release_date: '', key: '', tempo: '120', duration: '', genre: '',
-  guitar_tuning: 'Standard (E A D G B E)', lyrics: '', chords: '', notes: '', is_original: false, lrclib_id: null,
+  guitar_tuning: 'Standard (E A D G B E)', lyrics: '', chords: '', notes: '', is_original: false, visibility: 'bands', lrclib_id: null,
 };
 
 export default function SongForm() {
@@ -42,7 +42,7 @@ export default function SongForm() {
         setForm({
           title: s.title, artist: s.artist, album: s.album, release_date: s.release_date ?? '', key: s.key, tempo: String(s.tempo),
           duration: s.duration ? formatDuration(s.duration) : '', genre: s.genre, guitar_tuning: s.guitar_tuning, lyrics: s.lyrics ?? '',
-          chords: s.chords ?? '', notes: s.notes ?? '', is_original: s.is_original, lrclib_id: null,
+          chords: s.chords ?? '', notes: s.notes ?? '', is_original: s.is_original, visibility: s.visibility ?? 'bands', lrclib_id: null,
         }),
       )
       .catch((e) => setLoadError(errorMessage(e)))
@@ -163,8 +163,13 @@ export default function SongForm() {
             <input id="tuning" className="input" list="tunings" value={form.guitar_tuning} onChange={(e) => set('guitar_tuning', e.target.value)} maxLength={100} />
             <datalist id="tunings">{TUNINGS.map((t) => <option key={t} value={t} />)}</datalist>
           </Field>
+          <Field label="Who can see this song" htmlFor="visibility" hint={SONG_VISIBILITY.find((v) => v.value === form.visibility)?.hint} className="sm:col-span-2">
+            <select id="visibility" className="input sm:w-1/2" value={form.visibility} onChange={(e) => set('visibility', e.target.value as SongVisibility)}>
+              {SONG_VISIBILITY.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+            </select>
+          </Field>
           <div className="sm:col-span-2">
-            <Toggle checked={form.is_original} onChange={(v) => set('is_original', v)} label="Original song" description="Originals stay private and are not added to the shared catalog." />
+            <Toggle checked={form.is_original} onChange={(v) => set('is_original', v)} label="Original song" description="Originals and private songs are not added to the shared catalog." />
           </div>
         </section>
 

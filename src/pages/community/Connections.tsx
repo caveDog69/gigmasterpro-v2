@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Ban, Check, MessageSquare, UserMinus, UserPlus, X } from 'lucide-react';
+import { Ban, Check, MessageSquare, Music, UserMinus, UserPlus, X } from 'lucide-react';
 import { api, errorMessage } from '../../lib/api';
-import type { Connection, ConnectionStatus } from '../../lib/types';
-import { relativeTime } from '../../lib/format';
+import type { Connection, ConnectionStatus, ProfileBrief, Song } from '../../lib/types';
+import { formatDuration, relativeTime } from '../../lib/format';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useNotifications } from '../../contexts/NotificationsContext';
-import { Avatar, ConfirmDialog, EmptyState, ErrorBanner, PageLoader } from '../../components/ui';
+import { Avatar, ConfirmDialog, EmptyState, ErrorBanner, Modal, PageLoader } from '../../components/ui';
 
 export default function Connections() {
   const { user } = useAuth();
@@ -17,6 +17,14 @@ export default function Connections() {
   const [list, setList] = useState<Connection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Connection | null>(null);
+  const [songsOf, setSongsOf] = useState<ProfileBrief | null>(null);
+  const [songs, setSongs] = useState<Song[] | null>(null);
+
+  const openSongs = (p: ProfileBrief) => {
+    setSongsOf(p);
+    setSongs(null);
+    api.get<Song[]>(`/community/members/${p.id}/songs`).then(setSongs).catch((e) => { toast.error(errorMessage(e)); setSongsOf(null); });
+  };
 
   const load = () => api.get<Connection[]>('/connections').then(setList).catch((e) => setError(errorMessage(e)));
   useEffect(() => { load(); }, []);
@@ -88,6 +96,7 @@ export default function Connections() {
           <ul className="divide-y divide-gray-800">{accepted.map((c) => (
             <Row key={c.id} c={c}>
               <button className="btn-primary btn-sm" onClick={() => navigate(`/community?tab=messages&with=${other(c).id}`)}><MessageSquare className="h-3.5 w-3.5" /> Message</button>
+              <button className="btn-secondary btn-sm" onClick={() => openSongs(other(c))}><Music className="h-3.5 w-3.5" /> Songs</button>
               <button className="btn-ghost btn-sm" onClick={() => setRemoving(c)}><UserMinus className="h-3.5 w-3.5" /> Remove</button>
             </Row>
           ))}</ul>
@@ -107,7 +116,26 @@ export default function Connections() {
           ))}</ul>
         </section>
       )}
-      <ConfirmDialog open={!!removing} title="Remove?" body={`This removes the connection with ${removing ? other(removing).display_name : ''}.`} confirmLabel="Remove" onCancel={() => setRemoving(null)} onConfirm={remove} />
+      <ConfirmDialog
+        open={!!removing}
+        title={removing?.status === 'blocked' ? 'Unblock?' : 'Remove?'}
+        body={removing?.status === 'blocked' ? `${other(removing).display_name} will be able to find you and send connection requests again.` : `This removes the connection with ${removing ? other(removing).display_name : ''}.`}
+        confirmLabel={removing?.status === 'blocked' ? 'Unblock' : 'Remove'}
+        onCancel={() => setRemoving(null)}
+        onConfirm={remove}
+      />
+      <Modal open={!!songsOf} onClose={() => setSongsOf(null)} title={`Songs shared by ${songsOf?.display_name ?? ''}`}>
+        {!songs ? <PageLoader /> : songs.length === 0 ? <p className="py-6 text-center text-sm text-gray-500">{songsOf?.display_name} hasn't shared any songs with connections.</p> : (
+          <ul className="max-h-96 divide-y divide-gray-800 overflow-y-auto">
+            {songs.map((s) => (
+              <li key={s.id} className="py-2">
+                <p className="text-sm text-gray-100">{s.title}{s.is_original && <span className="chip ml-2 bg-amber-500/15 text-amber-300 ring-amber-500/30">Original</span>}</p>
+                <p className="text-xs text-gray-500">{[s.artist, s.key, s.tempo ? `${s.tempo} BPM` : '', s.duration ? formatDuration(s.duration) : '', s.genre].filter(Boolean).join(' · ')}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
     </div>
   );
 }

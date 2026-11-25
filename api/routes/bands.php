@@ -35,7 +35,7 @@ function band_detail(int $bandId): array
     $band['songs'] = array_map('band_share_out', q_all(
         'SELECT bs.id AS share_id, bs.added_by, bs.created_at AS shared_at, s.id, s.user_id, s.title, s.artist, s.`key`, s.tempo, s.duration, s.genre, s.guitar_tuning,
                 (s.lyrics IS NOT NULL AND s.lyrics <> \'\') AS has_lyrics, (s.chords IS NOT NULL AND s.chords <> \'\') AS has_chords, p.display_name AS added_by_name
-         FROM band_songs bs JOIN songs s ON s.id = bs.song_id JOIN profiles p ON p.id = bs.added_by WHERE bs.band_id = ? ORDER BY s.title',
+         FROM band_songs bs JOIN songs s ON s.id = bs.song_id JOIN profiles p ON p.id = bs.added_by WHERE bs.band_id = ? AND s.visibility <> \'private\' ORDER BY s.title',
         [$bandId]
     ));
     $band['setlists'] = array_map('band_share_out', q_all(
@@ -94,7 +94,7 @@ return static function (Router $r): void {
     $r->get('/bands', static function () {
         $bands = out_rows(q_all(
             'SELECT b.*, bm.role AS my_role, (SELECT COUNT(*) FROM band_members x WHERE x.band_id = b.id) AS member_count,
-                    (SELECT COUNT(*) FROM band_songs x WHERE x.band_id = b.id) AS song_count,
+                    (SELECT COUNT(*) FROM band_songs x JOIN songs s ON s.id = x.song_id WHERE x.band_id = b.id AND s.visibility <> \'private\') AS song_count,
                     (SELECT COUNT(*) FROM band_gigs x JOIN gigs g ON g.id = x.gig_id WHERE x.band_id = b.id AND g.date_time >= UTC_TIMESTAMP()) AS upcoming_gig_count
              FROM bands b JOIN band_members bm ON bm.band_id = b.id AND bm.user_id = ? ORDER BY b.name',
             [uid()]
@@ -164,6 +164,9 @@ return static function (Router $r): void {
         }
         if (!$invitee || !q_val('SELECT 1 FROM profiles WHERE id = ?', [$invitee])) {
             throw new HttpError(422, 'Musician not found.');
+        }
+        if (is_blocked_between(uid(), $invitee)) {
+            throw new HttpError(403, 'You cannot invite this musician.');
         }
         if (band_membership($id, $invitee)) {
             throw new HttpError(409, 'That musician is already in the band.');
@@ -256,7 +259,10 @@ return static function (Router $r): void {
             throw new HttpError(422, "Choose at least one item to share.");
         }
         foreach ($ids as $itemId) {
-            owned_or_404($source, (int) $itemId, $label);
+            $item = owned_or_404($source, (int) $itemId, $label);
+            if ($type === 'songs' && $item['visibility'] === 'private') {
+                throw new HttpError(422, "\u{201C}{$item['title']}\u{201D} is private. Change its visibility to share it with a band.");
+            }
             q("INSERT IGNORE INTO {$table} (band_id, {$col}, added_by) VALUES (?, ?, ?)", [$id, (int) $itemId, uid()]);
         }
         return band_detail($id);

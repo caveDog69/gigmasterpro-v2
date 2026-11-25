@@ -60,6 +60,12 @@ UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
 
 Ads render in three responsive slots: a banner above page content (320×50 / 728×90 / 970×90), a right-hand rail on wide screens (160×600 / 300×600) and a footer unit below content (300×250 / 728×90). Nothing loads from Google until ads are switched on and a publisher ID and that slot's ID are set; while ads are on but a slot has no ID, admins see a dashed placeholder where it will appear. Users flagged `ad_free` never see ads (the hook for a future paid ad-free plan). AdSense also needs an `ads.txt` at the site root, e.g. `google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0`.
 
+## Song privacy and community moderation
+
+Each song has a **Who can see this song** setting: *Private* (only the owner; it can't be shared with a band, stays out of the shared catalog, and is left out when other people view the owner's shared setlists, gigs and Play Mode), *Band members* (the default; members of bands it has been shared with) or *Band members & connections* (also accepted connections, who can browse it from **Songs** on the Connections tab).
+
+In **Community → Discover**, each musician card has **Hide** (removes them from your feed only; manage and unhide from the "hidden members" link above the results) and **Block**. Blocking removes any connection, hides both members from each other's feed, and stops messages, connection requests and band invitations between them; unblock from the Blocked list on the Connections tab.
+
 ## Feedback
 
 Any signed-in user can send feedback (optional subject + message) from **Feedback** (`/feedback`) and see the status of what they've sent. Admins review it in the Feedback panel on `/admin`, filter by new/read/resolved and mark items read or resolved; the Admin sidebar link shows the number of new items.
@@ -77,10 +83,10 @@ All endpoints are under `/api`. Every endpoint needs `Authorization: Bearer <tok
 | Admin (admins only) | `GET/PUT /admin/settings`, `GET /admin/users?search=&status=active\|disabled\|admin`, `PUT /admin/users/{id}` (`disabled`, `role`, `ad_free`), `GET /admin/feedback?status=new\|read\|resolved`, `PUT /admin/feedback/{id}` (`status`) |
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/logout`, `GET /auth/me`, `POST /auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`, `/auth/resend-verification`, `PUT /auth/password` |
 | Profile | `GET/PUT /profile`, `POST/DELETE /profile/avatar`, `GET/PUT /profile/play-mode-settings`, `POST /profile/calendar-token`, `GET /users/search` |
-| Songs | `GET/POST /songs`, `GET/PUT/DELETE /songs/{id}`, `GET /songs/search?q=&artist=&album=` (catalog + lrclib; `q` is the title), `POST /songs/import/match`, `POST /songs/import` |
+| Songs | `GET/POST /songs`, `GET/PUT/DELETE /songs/{id}` (`visibility`: `private\|bands\|connections`), `GET /songs/search?q=&artist=&album=` (catalog + lrclib; `q` is the title), `POST /songs/import/match`, `POST /songs/import` |
 | Setlists | `GET/POST /setlists`, `GET/PUT/DELETE /setlists/{id}`, `PUT /setlists/{id}/songs` |
 | Gigs | `GET/POST /gigs`, `GET/PUT/DELETE /gigs/{id}`, `PUT /gigs/{id}/setlists`, `GET /gigs/{id}/play`, `GET /gigs/calendar.ics`, `GET /gigs/{id}/calendar.ics` |
-| Community | `GET /community/profiles`, `GET/POST /connections`, `PUT/DELETE /connections/{id}` |
+| Community | `GET /community/profiles`, `GET/POST /connections`, `PUT/DELETE /connections/{id}`, `GET/POST /community/hidden`, `DELETE /community/hidden/{userId}`, `POST /community/blocks` (`user_id`), `GET /community/members/{id}/songs` (connections only) |
 | Feedback | `GET/POST /feedback` (own submissions; `subject`, `message`) |
 | Invites | `GET/POST /invites`, `POST /invites/{id}/resend`, `DELETE /invites/{id}` (revoke), `GET /invites/lookup?token=` (public); `POST /auth/register` accepts `invite_token` |
 | Messaging | `GET/POST /conversations`, `GET/POST /conversations/{id}/messages`, `PUT /conversations/{id}/read`, `GET /messages/unread-counts` |

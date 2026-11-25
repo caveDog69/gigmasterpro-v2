@@ -70,7 +70,7 @@ function gig_detail(int $id): array
         $songs = q_all(
             'SELECT ss.id AS entry_id, ss.position, ss.notes AS entry_notes, s.id, s.title, s.artist, s.album, s.`key`, s.tempo, s.duration, s.genre, s.guitar_tuning, s.notes, s.is_original,
                     (s.lyrics IS NOT NULL AND s.lyrics <> \'\') AS has_lyrics, (s.chords IS NOT NULL AND s.chords <> \'\') AS has_chords
-             FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id WHERE ss.setlist_id = ? ORDER BY ss.position',
+             FROM setlist_songs ss JOIN songs s ON s.id = ss.song_id WHERE ss.setlist_id = ? AND ' . song_not_private_sql('s') . ' ORDER BY ss.position',
             [$row['id']]
         );
         $link = ['id' => (int) $row['link_id'], 'gig_id' => $id, 'setlist_id' => (int) $row['id'], 'position' => (int) $row['position']];
@@ -261,7 +261,7 @@ return static function (Router $r): void {
              JOIN setlists st ON st.id = gs.setlist_id
              JOIN setlist_songs ss ON ss.setlist_id = st.id
              JOIN songs s ON s.id = ss.song_id
-             WHERE gs.gig_id = ? ORDER BY gs.position, ss.position',
+             WHERE gs.gig_id = ? AND ' . song_not_private_sql('s') . ' ORDER BY gs.position, ss.position',
             [$id]
         );
         return [

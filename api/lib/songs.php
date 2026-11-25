@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+const SONG_VISIBILITIES = ['private', 'bands', 'connections'];
+
 const SONG_KEYS = [
     'C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B',
     'Cm', 'C#m/Dbm', 'Dm', 'D#m/Ebm', 'Em', 'Fm', 'F#m/Gbm', 'Gm', 'G#m/Abm', 'Am', 'A#m/Bbm', 'Bm',
@@ -37,7 +39,7 @@ function song_payload(array $b): array
     if ($key !== '' && !in_array($key, SONG_KEYS, true)) {
         throw new HttpError(422, 'Invalid key.');
     }
-    return [
+    $song = [
         'title' => $title,
         'artist' => str_input($b, 'artist', 255),
         'album' => str_input($b, 'album', 255),
@@ -52,6 +54,13 @@ function song_payload(array $b): array
         'notes' => str_input($b, 'notes', 5000),
         'is_original' => bool_input($b, 'is_original') ? 1 : 0,
     ];
+    if (array_key_exists('visibility', $b)) {
+        if (!in_array($b['visibility'], SONG_VISIBILITIES, true)) {
+            throw new HttpError(422, 'Visibility must be private, bands or connections.');
+        }
+        $song['visibility'] = $b['visibility'];
+    }
+    return $song;
 }
 
 function insert_song(int $userId, array $song): int
@@ -65,7 +74,7 @@ function insert_song(int $userId, array $song): int
 /** Adds the song to the shared catalog (originals stay private), filling blanks on existing rows. */
 function catalog_upsert(array $song, string $source = 'user', ?int $lrclibId = null, bool $countImport = true): void
 {
-    if (!empty($song['is_original'])) {
+    if (!empty($song['is_original']) || ($song['visibility'] ?? '') === 'private') {
         return;
     }
     $nt = normalize_text($song['title'] ?? '');
