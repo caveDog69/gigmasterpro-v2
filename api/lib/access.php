@@ -51,8 +51,9 @@ function mask_private_song(array $s): array
             $s[$k] = null;
         }
     }
-    $s['tempo'] = 0;
+    $s['tempo'] = $s['is_original'] = 0;
     $s['has_lyrics'] = $s['has_chords'] = 0;
+    unset($s['created_at'], $s['updated_at']);
     $s['is_private'] = true;
     return $s;
 }
