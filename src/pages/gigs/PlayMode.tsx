@@ -200,7 +200,7 @@ export default function PlayMode() {
             {body ? (
               <pre className="whitespace-pre-wrap break-words font-mono leading-relaxed" style={{ fontSize: font }}>{body}</pre>
             ) : (
-              <p className="text-gray-500">No lyrics or chords for this song. <Link to={`/songs/edit/${song.id}`} className="link">Add them</Link></p>
+              <p className="text-gray-500">{song.is_private ? 'This song is private; only its owner can see the lyrics and chords.' : <>No lyrics or chords for this song. <Link to={`/songs/edit/${song.id}`} className="link">Add them</Link></>}</p>
             )}
             <div className="h-[40vh]" />
           </div>
