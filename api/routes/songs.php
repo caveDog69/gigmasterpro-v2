@@ -168,11 +168,11 @@ return static function (Router $r): void {
 
     $r->put('/songs/{id}', static function ($p) {
         $id = id_param($p);
-        owned_or_404('songs', $id, 'Song');
+        $existing = owned_or_404('songs', $id, 'Song');
         $song = song_payload(body());
         $set = implode(', ', array_map(static fn ($c) => "`{$c}` = ?", array_keys($song)));
         q("UPDATE songs SET {$set} WHERE id = ? AND user_id = ?", array_merge(array_values($song), [$id, uid()]));
-        catalog_upsert($song, 'user', null, false);
+        catalog_upsert($song + ['visibility' => $existing['visibility']], 'user', null, false);
         refresh_setlist_durations(setlists_with_song($id));
         return out_row(q_one('SELECT * FROM songs WHERE id = ?', [$id]));
     });
