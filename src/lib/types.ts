@@ -88,6 +88,7 @@ export interface Song {
   notes: string | null;
   is_original: boolean;
   visibility: SongVisibility;
+  is_private?: boolean;
   has_lyrics?: boolean;
   has_chords?: boolean;
   is_owner?: boolean;

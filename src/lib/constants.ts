@@ -1,7 +1,7 @@
 import type { CommitmentLevel, ExperienceLevel, FeedbackStatus, GigStatus, SongVisibility } from './types';
 
 export const SONG_VISIBILITY: { value: SongVisibility; label: string; hint: string }[] = [
-  { value: 'private', label: 'Private', hint: 'Only you can see this song. It cannot be shared with bands, and it is left out when others view your shared setlists and gigs.' },
+  { value: 'private', label: 'Private', hint: 'Only you can see this song. It cannot be shared with bands; in setlists and gigs you share, others see only its title.' },
   { value: 'bands', label: 'Band members', hint: 'Members of bands you share it with can see it.' },
   { value: 'connections', label: 'Band members & connections', hint: 'Members of bands you share it with, plus your accepted connections, can see it.' },
 ];

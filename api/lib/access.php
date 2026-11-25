@@ -37,10 +37,24 @@ function visible_sql(string $type, string $alias): string
     return str_replace(':viewer', $viewer, $sql . ')');
 }
 
-/** SQL fragment hiding other people's private songs inside shared setlists and gigs. */
-function song_not_private_sql(string $alias): string
+/** Reduces someone else's private song to its title (and length, so set runtimes stay right). */
+function mask_private_song(array $s): array
 {
-    return "({$alias}.user_id = " . uid() . " OR {$alias}.visibility <> 'private')";
+    if ((int) $s['user_id'] === uid() || $s['visibility'] !== 'private') {
+        return $s;
+    }
+    foreach (['artist', 'album', 'key', 'genre', 'guitar_tuning'] as $k) {
+        $s[$k] = '';
+    }
+    foreach (['release_date', 'lyrics', 'chords', 'notes'] as $k) {
+        if (array_key_exists($k, $s)) {
+            $s[$k] = null;
+        }
+    }
+    $s['tempo'] = 0;
+    $s['has_lyrics'] = $s['has_chords'] = 0;
+    $s['is_private'] = true;
+    return $s;
 }
 
 /** True when either user has blocked the other. */

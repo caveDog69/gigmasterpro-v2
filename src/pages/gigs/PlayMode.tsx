@@ -214,7 +214,7 @@ export default function PlayMode() {
             <input type="range" min={1} max={10} value={scrollSpeed} onChange={(e) => setScrollSpeed(Number(e.target.value))} className="w-20 accent-purple-500" aria-label="Scroll speed" />
             <span className="mx-2 h-5 w-px bg-gray-800" />
             <button className={cx('btn-sm', metronome ? 'btn-primary' : 'btn-secondary')} onClick={() => setMetronome((m) => !m)} disabled={!song.tempo}>
-              <Timer className="h-3.5 w-3.5" /> {song.tempo} BPM
+              <Timer className="h-3.5 w-3.5" /> {song.tempo || '—'} BPM
             </button>
             {metronome && (
               <span className="flex gap-1" aria-hidden="true">

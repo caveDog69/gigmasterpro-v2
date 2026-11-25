@@ -62,7 +62,7 @@ Ads render in three responsive slots: a banner above page content (320×50 / 728
 
 ## Song privacy and community moderation
 
-Each song has a **Who can see this song** setting: *Private* (only the owner; it can't be shared with a band, stays out of the shared catalog, and is left out when other people view the owner's shared setlists, gigs and Play Mode), *Band members* (the default; members of bands it has been shared with) or *Band members & connections* (also accepted connections, who can browse it from **Songs** on the Connections tab).
+Each song has a **Who can see this song** setting: *Private* (only the owner; it can't be shared with a band, stays out of the shared catalog, and when other people view the owner's shared setlists, gigs and Play Mode they see only its title and length), *Band members* (the default; members of bands it has been shared with) or *Band members & connections* (also accepted connections, who can browse it from **Songs** on the Connections tab).
 
 In **Community → Discover**, each musician card has **Hide** (removes them from your feed only; manage and unhide from the "hidden members" link above the results) and **Block**. Blocking removes any connection, hides both members from each other's feed, and stops messages, connection requests and band invitations between them; unblock from the Blocked list on the Connections tab.
 
